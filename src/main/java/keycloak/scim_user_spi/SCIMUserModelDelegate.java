@@ -1,19 +1,19 @@
 package keycloak.scim_user_spi;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.jboss.logging.Logger;
+import org.keycloak.broker.provider.util.SimpleHttp;
 import org.keycloak.component.ComponentModel;
 import org.keycloak.models.UserModel;
 import org.keycloak.models.utils.UserModelDelegate;
 
+import java.io.IOException;
 import java.util.List;
 
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.Status;
+import org.apache.http.HttpStatus;
 
 public class SCIMUserModelDelegate extends UserModelDelegate {
 
-	private static final Logger logger = LogManager.getLogger(SCIMUserModelDelegate.class);
+	private static final Logger logger = Logger.getLogger(SCIMUserModelDelegate.class);
 
 	private ComponentModel model;
 
@@ -24,26 +24,30 @@ public class SCIMUserModelDelegate extends UserModelDelegate {
 
 	@Override
 	public void setAttribute(String attr, List<String> values) {
+		logger.info("JS-setAttribute");
 		Scim scim = new Scim(model);
-		if (scim.clientAuthLogin() == null) {
-			logger.error("Login error");
-		}
+		HttpStatus httpStatus;
 
-		Response resp = scim.updateUser(this.getUsername(), attr, values);
-		if (resp.getStatus() != Status.OK.getStatusCode() &&
-			resp.getStatus() != Status.NO_CONTENT.getStatusCode()) {
-			logger.warn("Unexpected PUT status code returned");
+		SimpleHttp.Response resp = scim.updateUser(this.getUsername(), attr, values);
+		try {
+			if (resp.getStatus() != HttpStatus.SC_OK &&
+					resp.getStatus() != HttpStatus.SC_NO_CONTENT) {
+				logger.warn("Unexpected PUT status code returned");
+				resp.close();
+				return;
+			}
 			resp.close();
-			return;
+		} catch (IOException e) {
+			logger.error("Exception: " + e.getMessage());
+			throw new RuntimeException(e);
 		}
-		resp.close();
 		super.setAttribute(attr, values);
 	}
 
-    @Override
-    public void setSingleAttribute(String name, String value) {
-        super.setSingleAttribute(name, value);
-    }
+	@Override
+	public void setSingleAttribute(String name, String value) {
+		super.setSingleAttribute(name, value);
+	}
 	@Override
 	public void setUsername(String username) {
 		super.setUsername(username);

@@ -17,8 +17,7 @@
 
 package keycloak.scim_user_spi;
 
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.LogManager;
+import org.jboss.logging.Logger;
 
 import org.keycloak.component.ComponentModel;
 import org.keycloak.credential.CredentialInput;
@@ -34,20 +33,21 @@ import org.keycloak.storage.UserStorageProvider;
 import org.keycloak.storage.user.ImportedUserValidation;
 import org.keycloak.storage.user.UserLookupProvider;
 import org.keycloak.storage.user.UserRegistrationProvider;
+import org.keycloak.broker.provider.util.SimpleHttp;
 
 import keycloak.scim_user_spi.schemas.SCIMError;
 import keycloak.scim_user_spi.schemas.SCIMUser;
 
 import org.keycloak.storage.user.UserQueryProvider;
 
+import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.stream.Stream;
 
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.Status;
+import org.apache.http.HttpStatus;
 
 /**
  * @author <a href="mailto:jstephen@redhat.com">Justin Stephenson</a>
@@ -64,12 +64,14 @@ ImportedUserValidation
 	protected KeycloakSession session;
 	protected Properties properties;
 	protected ComponentModel model;
-	private static final Logger logger = LogManager.getLogger(SCIMUserStorageProvider.class);
+	protected Scim scim;
+	private static final Logger logger = Logger.getLogger(SCIMUserStorageProvider.class);
 
-	public SCIMUserStorageProvider(KeycloakSession session, ComponentModel model, Properties properties) {
+	public SCIMUserStorageProvider(KeycloakSession session, ComponentModel model, Properties properties, Scim scim) {
 		this.session = session;
 		this.model = model;
 		this.properties = properties;
+		this.scim = scim;
 	}
 
 	@Override
@@ -96,11 +98,7 @@ ImportedUserValidation
 	}
 
 	protected UserModel createUserInKeycloak(RealmModel realm, String username) {
-		Scim scim = new Scim(model);
-		if (scim.clientAuthLogin() == null) {
-			logger.error("Login error");
-			return null;
-		}
+		Scim scim = this.scim;
 
 		SCIMUser scimuser = scim.getUserByUsername(username);
 		if (scimuser.getTotalResults() == 0) {
@@ -161,11 +159,8 @@ ImportedUserValidation
 	// ImportedUserValidation methods
 	@Override
 	public UserModel validate(RealmModel realm, UserModel local) {
-		Scim scim = new Scim(model);
-		if (scim.clientAuthLogin() == null) {
-			logger.warn("login failure");
-			return null;
-		}
+		Scim scim = this.scim;
+		logger.info("JS-validate");
 
 		SCIMUser scimuser = scim.getUserByUsername(local.getUsername());
 		String fname = scim.getFirstName(scimuser);
@@ -188,38 +183,43 @@ ImportedUserValidation
 	// UserRegistrationProvider methods
 	@Override
 	public UserModel addUser(RealmModel realm, String username) {
-		Scim scim = new Scim(model);
-		if (scim.clientAuthLogin() == null) {
-			logger.error("Login error");
-			return null;
-		}
+		Scim scim = this.scim;
+		logger.info("JS-addUser");
 
-		Response resp = scim.createUser(username);
+		SimpleHttp.Response resp = scim.createUser(username);
 
-		if (resp.getStatus() != Status.CREATED.getStatusCode()) {
-			logger.warn("Unexpected create status code returned");
-			SCIMError error = resp.readEntity(SCIMError.class);
-			logger.warn(error.getDetail());
+		try {
+			if (resp.getStatus() != HttpStatus.SC_CREATED) {
+				logger.warn("Unexpected create status code returned");
+				SCIMError error = resp.asJson(SCIMError.class);
+				logger.warn(error.getDetail());
+				resp.close();
+				return null;
+			}
 			resp.close();
-
-			return null;
+		} catch (IOException e) {
+			logger.error("Error: " + e.getMessage());
+			throw new RuntimeException(e);
 		}
-		resp.close();
+
 		return createUserInKeycloak(realm, username);
 	}
 
 	@Override
 	public boolean removeUser(RealmModel realm, UserModel user) {
 		logger.info("Removing user: " + user.getUsername());
-		Scim scim = new Scim(model);
-		if (scim.clientAuthLogin() == null) {
-			logger.error("Login error");
-			return false;
-		}
+		Scim scim = this.scim;
+		logger.info("JS-removeUser");
 
-		Response resp = scim.deleteUser(user.getUsername());
-		Boolean status = resp.getStatus() == Status.NO_CONTENT.getStatusCode();
-		resp.close();
+		SimpleHttp.Response resp = scim.deleteUser(user.getUsername());
+		Boolean status = false;
+		try {
+			status = resp.getStatus() == HttpStatus.SC_NO_CONTENT;
+			resp.close();
+		} catch (IOException e) {
+			logger.error("Error: " + e.getMessage());
+			throw new RuntimeException(e);
+		}
 		return status;
 	}
 
@@ -236,12 +236,8 @@ ImportedUserValidation
 	// FIXME: handle firstResult, maxResults
 	private Stream<UserModel> performSearch(RealmModel realm, String search) {
 		List<UserModel> users = new LinkedList<>();
-
-		Scim scim = new Scim(model);
-		if (scim.clientAuthLogin() == null) {
-			logger.error("Login error");
-			return null;
-		}
+		Scim scim = this.scim;
+		logger.info("JS-performSearch");
 
 		SCIMUser scimuser = scim.getUserByUsername(search);
 		if (scimuser.getTotalResults() > 0) {
@@ -292,22 +288,19 @@ ImportedUserValidation
 
 	@Override
 	public int getUsersCount(RealmModel realm) {
-		Scim scim = new Scim(model);
-		if (scim.clientAuthLogin() == null) {
-			logger.error("Login error");
-			return 0;
-		}
+		Scim scim = this.scim;
 
-		Response response;
+		SCIMUser user = null;
+		SimpleHttp.Response response;
 		try {
-			response = scim.clientRequest("/Users", Scim.Method.GET, null, false);
+			response = scim.clientRequest("/Users", "GET", null);
+			user = response.asJson(SCIMUser.class);
+			response.close();
 		} catch (Exception e) {
-			logger.error(e.getMessage());
-			return 0;
+			logger.error("Error: " + e.getMessage());
+			throw new RuntimeException(e);
 		}
 
-		SCIMUser user = response.readEntity(SCIMUser.class);
-		response.close();
 		return user.getTotalResults();
 	}
 
@@ -329,7 +322,7 @@ ImportedUserValidation
 	@Override
 	public Stream<UserModel> searchForUserStream(RealmModel realm, Map<String, String> params, Integer firstResult,
 			Integer maxResults) {
-		// only supports searching by username
+		/* only supports searching by username */
 		String usernameSearchString = params.get("username");
 		if (usernameSearchString == null) return Stream.empty();
 		return searchForUserStream(realm, usernameSearchString, firstResult, maxResults);

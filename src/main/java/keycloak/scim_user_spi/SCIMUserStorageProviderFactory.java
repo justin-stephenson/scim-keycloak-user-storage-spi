@@ -17,24 +17,19 @@
 
 package keycloak.scim_user_spi;
 
-import org.apache.logging.log4j.LogManager;
-
-import org.apache.logging.log4j.Logger;
+import org.jboss.logging.Logger;
 import org.keycloak.Config;
+import org.keycloak.broker.provider.util.SimpleHttp;
 import org.keycloak.component.ComponentModel;
 import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.RealmModel;
 import org.keycloak.component.ComponentValidationException;
 import org.keycloak.storage.UserStorageProviderFactory;
-
 import org.keycloak.provider.ProviderConfigProperty;
 import org.keycloak.provider.ProviderConfigurationBuilder;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
-
-import javax.ws.rs.core.Response;
 
 import java.util.List;
 
@@ -44,7 +39,7 @@ import java.util.List;
  */
 public class SCIMUserStorageProviderFactory implements UserStorageProviderFactory<SCIMUserStorageProvider> {
 
-	private static final Logger logger = LogManager.getLogger(SCIMUserStorageProviderFactory.class);
+	private static final Logger logger = Logger.getLogger(SCIMUserStorageProviderFactory.class);
 	public static final String PROVIDER_NAME = "scim";
 	protected Properties properties = new Properties();
 	protected static final List<ProviderConfigProperty> configMetadata;
@@ -82,17 +77,15 @@ public class SCIMUserStorageProviderFactory implements UserStorageProviderFactor
 			throws ComponentValidationException {
 		Scim scim = new Scim(config);
 
-		if (scim.clientAuthLogin() == null) {
-			logger.error("Login error");
-			throw new ComponentValidationException("Cannot connect to provided URL!");
-		}
+		SimpleHttp.Response response;
 
-		Response response;
+		logger.info("Validate");
 		try {
-			response = scim.clientRequest("", Scim.Method.GET, null, false);
+			response = scim.clientRequest("", "GET", null);
 			response.close();
 		} catch (Exception e) {
-			logger.error(e.getMessage());
+			logger.info(e);
+			throw new ComponentValidationException("Cannot connect to provided URL!");
 		}
 	}
 
@@ -118,6 +111,7 @@ public class SCIMUserStorageProviderFactory implements UserStorageProviderFactor
 
 	@Override
 	public SCIMUserStorageProvider create(KeycloakSession session, ComponentModel model) {
-		return new SCIMUserStorageProvider(session, model, properties);
+		Scim scim = new Scim(model);
+		return new SCIMUserStorageProvider(session, model, properties, scim);
 	}
 }

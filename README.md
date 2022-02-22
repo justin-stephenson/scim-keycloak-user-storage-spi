@@ -2,7 +2,17 @@ Testing done with django-scim2 server
 
 #### Initial Authentication
 
-This plugin authenticates with a CSRF token similar to [How to cURL an Authenticated Django App?](https://stackoverflow.com/questions/21306515/how-to-curl-an-authenticated-django-app)
+This plugin authenticates with a CSRF token using the java Apache HTTP client equivalent of
+~~~
+COOKIEJAR="cookies.txt"
+rm -f $COOKIEJAR
+curl -c $COOKIEJAR http://127.0.0.1:8000/admin/login/?next=/admin/ -vvv
+
+DJANGO_TOKEN="$(grep csrftoken $COOKIEJAR | sed 's/^.*csrftoken\s*//')"
+curl -b $COOKIEJAR -c $COOKIEJAR http://127.0.0.1:8000/admin/login/?next=/admin/ -H "X-CSRFToken: $DJANGO_TOKEN" -d "username=admin&password=redhat" -X POST -vvv
+
+curl -c $COOKIEJAR -b $COOKIEJAR -e http://127.0.0.1:8000/admin/login/?next=/admin/ -X GET "http://127.0.0.1:8000/scim/v2/Users" -vvv
+~~~
 
 #### User functionality
 -   Lookup of users - Implemented
@@ -20,24 +30,26 @@ This plugin authenticates with a CSRF token similar to [How to cURL an Authentic
 
 - Deploy keycloak plugin
 ~~~
-	KEYCLOAK_PATH=/path/to/keycloak/keycloak-13.0.1 ./redeploy-plugin.sh
+	KEYCLOAK_PATH=/path/to/keycloak/keycloak-17.0.0 sh -x ./redeploy-plugin.sh
 ~~~
 
 - Download and run [keycloak](https://github.com/keycloak/keycloak#getting-started)
 
 - Login to Keycloak Admin Console (http://keycloak-server:8080)
 
+- Add new `demo` realm
+
 - Under User Federation -> Add the `scim` provider
 
 - In the provider settings, provide
 
-  * a SCIM Server URL (`scimserver.example.com:8081`).
+  * a SCIM Server URL (`scimserver.example.com:8000`).
   * Django username and password
 
 - Click **Save**. You should see a notice that the provider has been created.
 
 #### Implementation
-* This plugin performs JAX_RS HTTP communication equivalent to the following `curl` commands:
+* This plugin performs Apache HTTP communication equivalent to the following `curl` commands:
 
 * Create user (POST)
 ~~~
@@ -122,3 +134,9 @@ $ {
 ~~~
 $ curl -c cookies.txt -b cookies.txt -vvv -X DELETE http://127.0.0.1:8000/scim/v2/Users/$id
 ~~~
+
+#### Troubleshooting
+
+* Check expected output with curl commands above, use `tcpdump` and compare with http filter.
+
+* Start keycloak with option `--log-level=INFO,org.apache.http.wire:debug` to enable http wire tracing

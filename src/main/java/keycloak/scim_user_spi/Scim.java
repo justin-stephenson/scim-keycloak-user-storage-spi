@@ -1,166 +1,161 @@
 package keycloak.scim_user_spi;
 
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.LogManager;
+import org.jboss.logging.Logger;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-
-import javax.ws.rs.client.Client;
-import javax.ws.rs.client.ClientBuilder;
-import javax.ws.rs.client.Entity;
-import javax.ws.rs.client.Invocation.Builder;
-import javax.ws.rs.client.WebTarget;
-import javax.ws.rs.core.Form;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.NewCookie;
-import javax.ws.rs.core.Response;
+import org.apache.http.client.CookieStore;
+import org.apache.http.client.config.CookieSpecs;
+import org.apache.http.client.config.RequestConfig;
+import org.apache.http.cookie.Cookie;
+import org.apache.http.impl.client.BasicCookieStore;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
 import org.keycloak.component.ComponentModel;
+
+import org.keycloak.broker.provider.util.SimpleHttp;
 
 import keycloak.scim_user_spi.schemas.SCIMSearchRequest;
 import keycloak.scim_user_spi.schemas.SCIMUser;
-import keycloak.scim_user_spi.schemas.SCIMUser.Resource;
 
 
 public class Scim {
-	public enum Method {
-		GET,
-		DELETE,
-		PUT,
-		POST
-	}
-
-	private static final Logger logger = LogManager.getLogger(Scim.class);
+	private static final Logger logger = Logger.getLogger(Scim.class);
 
 	private ComponentModel model;
-	private SCIMUser user;
 	public static final String SCHEMA_CORE_USER = "urn:ietf:params:scim:schemas:core:2.0:User";
 	public static final String SCHEMA_API_MESSAGES_SEARCHREQUEST = "urn:ietf:params:scim:api:messages:2.0:SearchRequest";
 
-	String csrf;
 	String session_id;
+	String username;
+	String password;
+	CloseableHttpClient httpclient;
+	Boolean logged_in = false;
 
 	public Scim(ComponentModel model) {
 		this.model = model;
 	}
 
-	private String buildURL(String endpoint, Boolean admin) {
+	public Integer csrfAuthLogin() {
+		String url = "";
+		String loginPage = "";
+		SimpleHttp.Response response = null;
+
+		/* Create cookie store */
+		CookieStore cookieStore = new BasicCookieStore();
+
+		/* Create client */
+		CloseableHttpClient httpclient = HttpClients.custom()
+				.setDefaultCookieStore(cookieStore)
+				.setDefaultRequestConfig(RequestConfig.custom()
+						.setRedirectsEnabled(false)
+						.setCookieSpec(CookieSpecs.STANDARD)
+						.build()).build();
+		this.httpclient = httpclient;
+
+		/* Get inputs */
 		String server = model.getConfig().getFirst("scimurl");
-
-		if (admin) {
-			/* http://127.0.0.1:8000/$endpoint */
-			return String.format("http://%s%s", server, endpoint);
-		}
-		String baseurl = String.format("http://%s/scim/v2/", server);
-		/* http://127.0.0.1:8000/scim/v2/$endpoint */
-		String finalurl= baseurl.concat(endpoint);
-
-		return finalurl;
-	}
-
-	public Integer clientAuthLogin() {
 		String username = model.getConfig().getFirst("loginusername");
-		String pw = model.getConfig().getFirst("loginpassword");
+		String password = model.getConfig().getFirst("loginpassword");
 
-		/* Get login url */
-		Response response;
+		/* Get Location redirect url */
+		url = String.format("http://%s%s", server, "/admin/");
+
 		try {
-			response = clientRequest("/admin/", Scim.Method.GET, null, true);
+			response = SimpleHttp.doGet(url, this.httpclient).asResponse();
+
+			//response0 = clientRequest("/admin/", "GET", null, true, null, true);
+			loginPage = response.getFirstHeader("Location");
+			response.close();
 		} catch (Exception e) {
-			logger.error(e.getMessage());
-			return null;
+			logger.error("Error: " + e.getMessage());
+			throw new RuntimeException(e);
 		}
 
-		String loginPage = response.getLocation().toString();
+		/* Execute GET to get initial csrftoken */
+		url = String.format("http://%s%s", server, loginPage);
 
-		response.close();
-
-		/* Retrieve csrf cookie from server */
-		Response login;
 		try {
-			login = clientRequest(loginPage, Scim.Method.GET, null, true);
+			response = SimpleHttp.doGet(url, this.httpclient).asResponse();
+			response.close();
 		} catch (Exception e) {
-			logger.error(e.getMessage());
-			return null;
+			logger.error("Error: " + e.getMessage());
+			throw new RuntimeException(e);
 		}
-		Map<String, NewCookie> cookies;
-		cookies = login.getCookies();
 
-		this.csrf = cookies.get("csrftoken").getValue();
 
-		login.close();
-		cookies.clear();
+		/* Store the Response csrftoken cookie */
+		String csrf = null;
 
-		Form form = new Form().param("csrfmiddlewaretoken",  this.csrf).param("username", username).param("password", pw);
+		for (Cookie co: cookieStore.getCookies()) {
+			if (co.getName().contains("csrftoken")) {
+				csrf = co.getValue();
+				cookieStore.addCookie(co);
+			}
+		}
 
-		Entity<Form> payload = Entity.entity(form, MediaType.APPLICATION_FORM_URLENCODED_TYPE);
+		/* Perform login POST */
+		HashMap<String, String> headers = new HashMap<String, String>();
 
-		/* Perform login POST with data, csrf and sessionid cookies are returned */
-		Response login_response;
+		headers.put("X-CSRFToken", csrf);
+
 		try {
-			login_response = clientRequest(loginPage, Method.POST, payload, true);
+			response = SimpleHttp.doPost(url, this.httpclient).header("X-CSRFToken", csrf).param("username",  username).param("password",  password).asResponse();
+			response.close();
 		} catch (Exception e) {
-			logger.error(e.getMessage());
-			return null;
+			logger.error("Error: " + e.getMessage());
+			throw new RuntimeException(e);
 		}
 
-		/* Bad username/password */
-		cookies = login_response.getCookies();
-		if (cookies.get("csrftoken") == null || cookies.get("sessionid") == null) {
-			return null;
+		/* Store the Response sessionid and new csrftoken cookie */
+		for (Cookie co: cookieStore.getCookies()) {
+			if (co.getName().contains("csrftoken") || co.getName().contains("sessionid")) {
+				cookieStore.addCookie(co);
+			}
 		}
 
-		this.csrf = cookies.get("csrftoken").getValue();
-		this.session_id = cookies.get("sessionid").getValue();
-
-		login_response.close();
-
+		this.logged_in = true;
 		return 0;
+
 	}
 
-	/* Expect Entity<Form> or Entity<Resource>, Form is used for initial auth */
-	public <T> Response clientRequest(String endpoint, Method method, Entity<T> entity, Boolean admin) throws Exception {
-		Client client = ClientBuilder.newClient();
-		Response response = null;
-		String header = "";
+	public <T> SimpleHttp.Response clientRequest(String endpoint, String method, T entity) throws Exception {
+		SimpleHttp.Response response = null;
 
-		String endpointurl = buildURL(endpoint, admin);
+		if (this.logged_in == false) {
+			this.csrfAuthLogin();
+		}
+
+		/* Build URL */
+		String server = model.getConfig().getFirst("scimurl");
+		String endpointurl = String.format("http://%s/scim/v2/%s", server, endpoint);
 
 		logger.info(String.format("Sending %s request to [%s]", method.toString(), endpointurl));
 
-		WebTarget target = client.target(endpointurl).property(endpoint, endpointurl);
-
-		Builder builder = target.request();
-
-		/* Add cookies */
-		if (this.csrf != null && this.session_id != null) {
-			header = String.format("csrftoken=%s; sessionid=%s", this.csrf, this.session_id);
-		} else if (this.csrf != null) {
-			header = String.format("csrftoken=%s", this.csrf);
-		} else if (this.session_id != null) {
-			header = String.format("sessionid=%s", this.session_id);
-		}
-
 		try {
 			switch (method) {
-			case GET:
-				response = builder.header("Cookie", header).get();
+			case "GET":
+				response = SimpleHttp.doGet(endpointurl, this.httpclient).asResponse();
 				break;
-			case DELETE:
-				response = builder.header("Cookie", header).delete();
+			case "DELETE":
+				response = SimpleHttp.doDelete(endpointurl, this.httpclient).asResponse();
 				break;
-			case POST:
-				response = builder.header("Cookie", header).post(entity);
+			case "POST":
+				response = SimpleHttp.doPost(endpointurl, this.httpclient).json(entity).asResponse();
 				break;
-			case PUT:
-				response = builder.header("Cookie", header).put(entity);
+			case "PUT":
+				response = SimpleHttp.doPut(endpointurl, this.httpclient).json(entity).asResponse();
+				break;
+			default:
+				logger.warn("Unknown HTTP method, skipping");
 				break;
 			}
 		} catch (Exception e) {
 			throw new Exception();
 		}
 
+		/* Caller is responsible for executing .close() */
 		return response;
 	}
 
@@ -182,21 +177,20 @@ public class Scim {
 
 	private SCIMUser getUserByAttr(String username, String attribute) {
 		SCIMSearchRequest newSearch = setupSearch(username, attribute);
-		Entity<SCIMSearchRequest> payload = Entity.entity(newSearch, "application/scim+json");
 
 		String usersSearchUrl = "Users/.search";
+		SCIMUser user = null;
 
-		Response response;
+		SimpleHttp.Response response;
 		try {
-			response = clientRequest(usersSearchUrl, Method.POST, payload, false);
+			response = clientRequest(usersSearchUrl, "POST", newSearch);
+			user = response.asJson(SCIMUser.class);
+			response.close();
 		} catch (Exception e) {
-			logger.error(e.getMessage());
-			return null;
+			logger.error("Error: " + e.getMessage());
+			throw new RuntimeException(e);
 		}
 
-		SCIMUser user = response.readEntity(SCIMUser.class);
-
-		response.close();
 		return user;
 	}
 
@@ -220,21 +214,19 @@ public class Scim {
 		return getUserByAttr(username, attribute);
 	}
 
-	public Response deleteUser(String username) {
+	public SimpleHttp.Response deleteUser(String username) {
 		SCIMUser userobj = getUserByUsername(username);
 		SCIMUser.Resource user = userobj.getResources().get(0);
 
 		String userIdUrl = String.format("Users/%s", user.getId());
 
-		Response response;
+		SimpleHttp.Response response;
 		try {
-			response = clientRequest(userIdUrl, Method.DELETE, null, false);
+			response = clientRequest(userIdUrl, "DELETE", null);
 		} catch (Exception e) {
-			logger.error(e.getMessage());
-			return null;
+			logger.error("Error: " + e.getMessage());
+			throw new RuntimeException(e);
 		}
-
-		response.close();
 
 		return response;
 	}
@@ -272,22 +264,19 @@ public class Scim {
 		return user;
 	}
 
-	public Response createUser(String username) {
+	public SimpleHttp.Response createUser(String username) {
 		String usersUrl = "Users";
 
 		SCIMUser.Resource newUser = setupUser(username);
 
-		Entity<Resource> payload = Entity.entity(newUser, "application/scim+json");
-
-		Response response;
+		SimpleHttp.Response response;
 		try {
-			response = clientRequest(usersUrl, Method.POST, payload, false);
+			response = clientRequest(usersUrl, "POST", newUser);
 		} catch (Exception e) {
 			logger.error(e.getMessage());
 			return null;
 		}
 
-		response.close();
 		return response;
 	}
 
@@ -319,11 +308,11 @@ public class Scim {
 		}
 	}
 
-	public Response updateUser(String username, String attr, List<String> values) {
+	public SimpleHttp.Response updateUser(String username, String attr, List<String> values) {
 		logger.info(String.format("Updating %s attribute for %s", attr, username));
 		/* Get existing user */
 		Scim scim = new Scim(model);
-		if (scim.clientAuthLogin() == null) {
+		if (scim.csrfAuthLogin() == null) {
 			logger.error("Login error");
 		}
 
@@ -335,17 +324,14 @@ public class Scim {
 
 		/* Update user in SCIM */
 		String modifyUrl = String.format("Users/%s", user.getId());
-		Entity<Resource> payload = Entity.entity(user, "application/scim+json");
 
-		Response response;
+		SimpleHttp.Response response;
 		try {
-			response = clientRequest(modifyUrl, Method.PUT, payload, false);
+			response = clientRequest(modifyUrl, "PUT", user);
 		} catch (Exception e) {
-			logger.error(e.getMessage());
-			return null;
+			logger.error("Error: " + e.getMessage());
+			throw new RuntimeException(e);
 		}
-
-		response.close();
 
 		return response;
 	}
