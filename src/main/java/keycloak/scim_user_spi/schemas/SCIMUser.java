@@ -1,4 +1,4 @@
-package keycloak.scim_user_spi;
+package keycloak.scim_user_spi.schemas;
 
 import java.util.HashMap;
 import java.util.List;
@@ -25,13 +25,13 @@ public class SCIMUser {
 	@JsonProperty("Resources")
 	private List<Resource> resources = null;
 	@JsonProperty("itemsPerPage")
-	private String itemsPerPage;
+	private Integer itemsPerPage;
 	@JsonProperty("schemas")
 	private List<String> schemas = null;
 	@JsonProperty("startIndex")
-	private String startIndex;
+	private Integer startIndex;
 	@JsonProperty("totalResults")
-	private String totalResults;
+	private Integer totalResults;
 	@JsonIgnore
 	private Map<String, Object> additionalProperties = new HashMap<String, Object>();
 
@@ -46,12 +46,12 @@ public class SCIMUser {
 	}
 
 	@JsonProperty("itemsPerPage")
-	public String getItemsPerPage() {
+	public Integer getItemsPerPage() {
 		return itemsPerPage;
 	}
 
 	@JsonProperty("itemsPerPage")
-	public void setItemsPerPage(String itemsPerPage) {
+	public void setItemsPerPage(Integer itemsPerPage) {
 		this.itemsPerPage = itemsPerPage;
 	}
 
@@ -66,22 +66,22 @@ public class SCIMUser {
 	}
 
 	@JsonProperty("startIndex")
-	public String getStartIndex() {
+	public Integer getStartIndex() {
 		return startIndex;
 	}
 
 	@JsonProperty("startIndex")
-	public void setStartIndex(String startIndex) {
+	public void setStartIndex(Integer startIndex) {
 		this.startIndex = startIndex;
 	}
 
 	@JsonProperty("totalResults")
-	public String getTotalResults() {
+	public Integer getTotalResults() {
 		return totalResults;
 	}
 
 	@JsonProperty("totalResults")
-	public void setTotalResults(String totalResults) {
+	public void setTotalResults(Integer totalResults) {
 		this.totalResults = totalResults;
 	}
 
@@ -107,10 +107,10 @@ public class SCIMUser {
 		"userName"
 	})
 	@Generated("jsonschema2pojo")
-	static class Resource {
+	public static class Resource {
 
 		@JsonProperty("active")
-		private String active;
+		private Boolean active;
 		@JsonProperty("emails")
 		private List<Email> emails = null;
 		@JsonProperty("groups")
@@ -129,13 +129,13 @@ public class SCIMUser {
 		private Map<String, Object> additionalProperties = new HashMap<String, Object>();
 
 		@JsonProperty("active")
-		public String getActive() {
+		public Boolean getActive() {
 			return active;
 		}
 
 		@JsonProperty("active")
-		public void setActive(String active) {
-			this.active = active;
+		public void setActive(boolean b) {
+			this.active = b;
 		}
 
 		@JsonProperty("emails")
@@ -225,7 +225,7 @@ public class SCIMUser {
 			"middleName"
 		})
 		@Generated("jsonschema2pojo")
-		static class Name {
+		public static class Name {
 
 			@JsonProperty("familyName")
 			private String familyName;
@@ -284,7 +284,7 @@ public class SCIMUser {
 			"resourceType"
 		})
 		@Generated("jsonschema2pojo")
-		static class Meta {
+		public static class Meta {
 
 			@JsonProperty("location")
 			private String location;
@@ -330,7 +330,7 @@ public class SCIMUser {
 			"value"
 		})
 		@Generated("jsonschema2pojo")
-		static class Email {
+		public static class Email {
 
 			@JsonProperty("primary")
 			private Boolean primary;
@@ -389,7 +389,7 @@ public class SCIMUser {
 			"value"
 		})
 		@Generated("jsonschema2pojo")
-		static class Group {
+		public static class Group {
 
 			@JsonProperty("$ref")
 			private String $ref;

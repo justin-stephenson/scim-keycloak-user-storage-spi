@@ -24,17 +24,12 @@ import org.keycloak.Config;
 import org.keycloak.component.ComponentModel;
 import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.RealmModel;
-import org.keycloak.common.util.EnvUtil;
 import org.keycloak.component.ComponentValidationException;
 import org.keycloak.storage.UserStorageProviderFactory;
-
-import keycloak.scim_user_spi.Scim.Method;
 
 import org.keycloak.provider.ProviderConfigProperty;
 import org.keycloak.provider.ProviderConfigurationBuilder;
 
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
@@ -56,11 +51,25 @@ public class SCIMUserStorageProviderFactory implements UserStorageProviderFactor
 
 	static {
 		configMetadata = ProviderConfigurationBuilder.create()
+				/* SCIMv2 server url*/
 				.property().name("scimurl")
 				.type(ProviderConfigProperty.STRING_TYPE)
 				.label("SCIM Server URL")
 				.helpText("Backend SCIM Server URL in the format: server.example.com:8080")
-				.add().build();
+				.add()
+				/* Login username, used to auth to make HTTP requests */
+				.property().name("loginusername")
+				.type(ProviderConfigProperty.STRING_TYPE)
+				.label("Login username")
+				.helpText("username to authenticate through the login page")
+				.add()
+				/* Login password, used to auth to make HTTP requests */
+				.property().name("loginpassword")
+				.type(ProviderConfigProperty.STRING_TYPE)
+				.label("Login password")
+				.helpText("password to authenticate through the login page")
+				.add()
+				.build();
 	}
 
 	@Override
@@ -73,10 +82,17 @@ public class SCIMUserStorageProviderFactory implements UserStorageProviderFactor
 			throws ComponentValidationException {
 		Scim scim = new Scim(config);
 
-		try {
-			Response response = scim.clientRequest("", Scim.Method.GET, null);
-		} catch (Exception e) {
+		if (scim.clientAuthLogin() == null) {
+			logger.error("Login error");
 			throw new ComponentValidationException("Cannot connect to provided URL!");
+		}
+
+		Response response;
+		try {
+			response = scim.clientRequest("", Scim.Method.GET, null, false);
+			response.close();
+		} catch (Exception e) {
+			logger.error(e.getMessage());
 		}
 	}
 

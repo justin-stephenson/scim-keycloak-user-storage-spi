@@ -34,6 +34,10 @@ import org.keycloak.storage.UserStorageProvider;
 import org.keycloak.storage.user.ImportedUserValidation;
 import org.keycloak.storage.user.UserLookupProvider;
 import org.keycloak.storage.user.UserRegistrationProvider;
+
+import keycloak.scim_user_spi.schemas.SCIMError;
+import keycloak.scim_user_spi.schemas.SCIMUser;
+
 import org.keycloak.storage.user.UserQueryProvider;
 
 import java.util.LinkedList;
@@ -93,9 +97,13 @@ ImportedUserValidation
 
 	protected UserModel createUserInKeycloak(RealmModel realm, String username) {
 		Scim scim = new Scim(model);
+		if (scim.clientAuthLogin() == null) {
+			logger.error("Login error");
+			return null;
+		}
 
 		SCIMUser scimuser = scim.getUserByUsername(username);
-		if (Integer.parseInt(scimuser.getTotalResults()) == 0) {
+		if (scimuser.getTotalResults() == 0) {
 			return null;
 		}
 		UserModel user = session.userLocalStorage().addUser(realm,  username);
@@ -154,6 +162,10 @@ ImportedUserValidation
 	@Override
 	public UserModel validate(RealmModel realm, UserModel local) {
 		Scim scim = new Scim(model);
+		if (scim.clientAuthLogin() == null) {
+			logger.warn("login failure");
+			return null;
+		}
 
 		SCIMUser scimuser = scim.getUserByUsername(local.getUsername());
 		String fname = scim.getFirstName(scimuser);
@@ -177,13 +189,22 @@ ImportedUserValidation
 	@Override
 	public UserModel addUser(RealmModel realm, String username) {
 		Scim scim = new Scim(model);
+		if (scim.clientAuthLogin() == null) {
+			logger.error("Login error");
+			return null;
+		}
+
 		Response resp = scim.createUser(username);
 
 		if (resp.getStatus() != Status.CREATED.getStatusCode()) {
 			logger.warn("Unexpected create status code returned");
+			SCIMError error = resp.readEntity(SCIMError.class);
+			logger.warn(error.getDetail());
+			resp.close();
+
 			return null;
 		}
-
+		resp.close();
 		return createUserInKeycloak(realm, username);
 	}
 
@@ -191,8 +212,15 @@ ImportedUserValidation
 	public boolean removeUser(RealmModel realm, UserModel user) {
 		logger.info("Removing user: " + user.getUsername());
 		Scim scim = new Scim(model);
-		Response resp = scim.deleteUser(user.getUsername(), user.getId());
-		return resp.getStatus() == Status.OK.getStatusCode();
+		if (scim.clientAuthLogin() == null) {
+			logger.error("Login error");
+			return false;
+		}
+
+		Response resp = scim.deleteUser(user.getUsername());
+		Boolean status = resp.getStatus() == Status.NO_CONTENT.getStatusCode();
+		resp.close();
+		return status;
 	}
 
 	// UserQueryProvider methods
@@ -210,9 +238,13 @@ ImportedUserValidation
 		List<UserModel> users = new LinkedList<>();
 
 		Scim scim = new Scim(model);
+		if (scim.clientAuthLogin() == null) {
+			logger.error("Login error");
+			return null;
+		}
 
 		SCIMUser scimuser = scim.getUserByUsername(search);
-		if (Integer.parseInt(scimuser.getTotalResults()) > 0) {
+		if (scimuser.getTotalResults() > 0) {
 			logger.info("User found by username!");
 			if (session.userLocalStorage().getUserByUsername(realm, search) == null) {
 				UserModel user = getUserByUsername(scim.getUserName(scimuser), realm);
@@ -256,6 +288,27 @@ ImportedUserValidation
 	@Override
 	public Stream<UserModel> getGroupMembersStream(RealmModel arg0, GroupModel arg1, Integer arg2, Integer arg3) {
 		return Stream.empty();
+	}
+
+	@Override
+	public int getUsersCount(RealmModel realm) {
+		Scim scim = new Scim(model);
+		if (scim.clientAuthLogin() == null) {
+			logger.error("Login error");
+			return 0;
+		}
+
+		Response response;
+		try {
+			response = scim.clientRequest("/Users", Scim.Method.GET, null, false);
+		} catch (Exception e) {
+			logger.error(e.getMessage());
+			return 0;
+		}
+
+		SCIMUser user = response.readEntity(SCIMUser.class);
+		response.close();
+		return user.getTotalResults();
 	}
 
 	@Override

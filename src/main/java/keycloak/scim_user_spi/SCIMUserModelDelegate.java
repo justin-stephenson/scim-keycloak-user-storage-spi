@@ -25,12 +25,18 @@ public class SCIMUserModelDelegate extends UserModelDelegate {
 	@Override
 	public void setAttribute(String attr, List<String> values) {
 		Scim scim = new Scim(model);
+		if (scim.clientAuthLogin() == null) {
+			logger.error("Login error");
+		}
+
 		Response resp = scim.updateUser(this.getUsername(), attr, values);
 		if (resp.getStatus() != Status.OK.getStatusCode() &&
 			resp.getStatus() != Status.NO_CONTENT.getStatusCode()) {
 			logger.warn("Unexpected PUT status code returned");
+			resp.close();
 			return;
 		}
+		resp.close();
 		super.setAttribute(attr, values);
 	}
 
