@@ -65,11 +65,10 @@ public class Scim {
 		try {
 			response = SimpleHttp.doGet(url, this.httpclient).asResponse();
 
-			//response0 = clientRequest("/admin/", "GET", null, true, null, true);
 			loginPage = response.getFirstHeader("Location");
 			response.close();
 		} catch (Exception e) {
-			logger.error("Error: " + e.getMessage());
+			logger.errorv("Error: {0}", e.getMessage());
 			throw new RuntimeException(e);
 		}
 
@@ -80,7 +79,7 @@ public class Scim {
 			response = SimpleHttp.doGet(url, this.httpclient).asResponse();
 			response.close();
 		} catch (Exception e) {
-			logger.error("Error: " + e.getMessage());
+			logger.errorv("Error: {0}", e.getMessage());
 			throw new RuntimeException(e);
 		}
 
@@ -131,7 +130,7 @@ public class Scim {
 		String server = model.getConfig().getFirst("scimurl");
 		String endpointurl = String.format("http://%s/scim/v2/%s", server, endpoint);
 
-		logger.info(String.format("Sending %s request to [%s]", method.toString(), endpointurl));
+		logger.infov("Sending {0} request to {1}", method.toString(), endpointurl);
 
 		try {
 			switch (method) {
@@ -169,8 +168,8 @@ public class Scim {
 
 		filter = String.format("%s eq \"%s\"", attribute, username);
 		search.setFilter(filter);
-		logger.info(String.format("filter: %s", filter));
-		logger.info(String.format("Schema: %s",  SCHEMA_API_MESSAGES_SEARCHREQUEST));
+		logger.infov("filter: {0}", filter);
+		logger.infov("Schema: {0}",  SCHEMA_API_MESSAGES_SEARCHREQUEST);
 
 		return search;
 	}
@@ -187,7 +186,7 @@ public class Scim {
 			user = response.asJson(SCIMUser.class);
 			response.close();
 		} catch (Exception e) {
-			logger.error("Error: " + e.getMessage());
+			logger.errorv("Error: {0}", e.getMessage());
 			throw new RuntimeException(e);
 		}
 
@@ -224,7 +223,7 @@ public class Scim {
 		try {
 			response = clientRequest(userIdUrl, "DELETE", null);
 		} catch (Exception e) {
-			logger.error("Error: " + e.getMessage());
+			logger.errorv("Error: {0}", e.getMessage());
 			throw new RuntimeException(e);
 		}
 
@@ -273,7 +272,7 @@ public class Scim {
 		try {
 			response = clientRequest(usersUrl, "POST", newUser);
 		} catch (Exception e) {
-			logger.error(e.getMessage());
+			logger.errorv("Error: {0}", e.getMessage());
 			return null;
 		}
 
@@ -312,8 +311,9 @@ public class Scim {
 		logger.info(String.format("Updating %s attribute for %s", attr, username));
 		/* Get existing user */
 		Scim scim = new Scim(model);
+
 		if (scim.csrfAuthLogin() == null) {
-			logger.error("Login error");
+			logger.error("Error during login");
 		}
 
 		SCIMUser userobj = getUserByUsername(username);
@@ -329,7 +329,7 @@ public class Scim {
 		try {
 			response = clientRequest(modifyUrl, "PUT", user);
 		} catch (Exception e) {
-			logger.error("Error: " + e.getMessage());
+			logger.errorv("Error: {0}", e.getMessage());
 			throw new RuntimeException(e);
 		}
 

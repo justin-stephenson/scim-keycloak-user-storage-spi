@@ -38,7 +38,7 @@ public class SCIMUserModelDelegate extends UserModelDelegate {
 			}
 			resp.close();
 		} catch (IOException e) {
-			logger.error("Exception: " + e.getMessage());
+			logger.errorv("Error: {0}", e.getMessage());
 			throw new RuntimeException(e);
 		}
 		super.setAttribute(attr, values);

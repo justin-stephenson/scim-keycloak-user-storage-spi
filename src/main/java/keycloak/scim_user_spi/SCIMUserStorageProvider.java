@@ -117,7 +117,7 @@ ImportedUserValidation
 			GroupModel group;
 
 			if (groups.size() == 0) {
-				logger.info("No group found, creating group: " + name);
+				logger.infov("No group found, creating group: {0}", name);
 				group = session.groups().createGroup(realm, name);
 			} else {
 				group = groups.get(0);
@@ -125,7 +125,7 @@ ImportedUserValidation
 			user.joinGroup(group);
 		}
 
-		logger.info("Creating SCIM user " + username + " in keycloak");
+		logger.infov("Creating SCIM user {0} in keycloak", username);
 		return new SCIMUserModelDelegate(user, model);
 	}
 
@@ -160,7 +160,6 @@ ImportedUserValidation
 	@Override
 	public UserModel validate(RealmModel realm, UserModel local) {
 		Scim scim = this.scim;
-		logger.info("JS-validate");
 
 		SCIMUser scimuser = scim.getUserByUsername(local.getUsername());
 		String fname = scim.getFirstName(scimuser);
@@ -184,7 +183,6 @@ ImportedUserValidation
 	@Override
 	public UserModel addUser(RealmModel realm, String username) {
 		Scim scim = this.scim;
-		logger.info("JS-addUser");
 
 		SimpleHttp.Response resp = scim.createUser(username);
 
@@ -198,7 +196,7 @@ ImportedUserValidation
 			}
 			resp.close();
 		} catch (IOException e) {
-			logger.error("Error: " + e.getMessage());
+			logger.errorv("Error: {0}", e.getMessage());
 			throw new RuntimeException(e);
 		}
 
@@ -207,9 +205,8 @@ ImportedUserValidation
 
 	@Override
 	public boolean removeUser(RealmModel realm, UserModel user) {
-		logger.info("Removing user: " + user.getUsername());
+		logger.infov("Removing user: {0}", user.getUsername());
 		Scim scim = this.scim;
-		logger.info("JS-removeUser");
 
 		SimpleHttp.Response resp = scim.deleteUser(user.getUsername());
 		Boolean status = false;
@@ -217,7 +214,7 @@ ImportedUserValidation
 			status = resp.getStatus() == HttpStatus.SC_NO_CONTENT;
 			resp.close();
 		} catch (IOException e) {
-			logger.error("Error: " + e.getMessage());
+			logger.errorv("Error: {0}", e.getMessage());
 			throw new RuntimeException(e);
 		}
 		return status;
@@ -237,7 +234,6 @@ ImportedUserValidation
 	private Stream<UserModel> performSearch(RealmModel realm, String search) {
 		List<UserModel> users = new LinkedList<>();
 		Scim scim = this.scim;
-		logger.info("JS-performSearch");
 
 		SCIMUser scimuser = scim.getUserByUsername(search);
 		if (scimuser.getTotalResults() > 0) {
@@ -297,7 +293,7 @@ ImportedUserValidation
 			user = response.asJson(SCIMUser.class);
 			response.close();
 		} catch (Exception e) {
-			logger.error("Error: " + e.getMessage());
+			logger.errorv("Error: {0}", e.getMessage());
 			throw new RuntimeException(e);
 		}
 

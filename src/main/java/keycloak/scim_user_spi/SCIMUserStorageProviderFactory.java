@@ -79,7 +79,6 @@ public class SCIMUserStorageProviderFactory implements UserStorageProviderFactor
 
 		SimpleHttp.Response response;
 
-		logger.info("Validate");
 		try {
 			response = scim.clientRequest("", "GET", null);
 			response.close();
