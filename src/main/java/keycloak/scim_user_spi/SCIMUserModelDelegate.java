@@ -24,7 +24,6 @@ public class SCIMUserModelDelegate extends UserModelDelegate {
 
 	@Override
 	public void setAttribute(String attr, List<String> values) {
-		logger.info("JS-setAttribute");
 		Scim scim = new Scim(model);
 		HttpStatus httpStatus;
 
@@ -66,5 +65,10 @@ public class SCIMUserModelDelegate extends UserModelDelegate {
 	@Override
 	public void setEmail(String email) {
 		super.setFirstName(email);
+	}
+
+	@Override
+	public void setEnabled(boolean enabled) {
+		super.setEnabled(enabled);
 	}
 }

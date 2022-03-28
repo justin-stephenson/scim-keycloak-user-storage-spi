@@ -105,7 +105,6 @@ ImportedUserValidation
 			return null;
 		}
 		UserModel user = session.userLocalStorage().addUser(realm,  username);
-		user.setEnabled(scim.getActive(scimuser));
 		user.setEmail(scim.getEmail(scimuser));
 		user.setFirstName(scim.getFirstName(scimuser));
 		user.setLastName(scim.getLastName(scimuser));
