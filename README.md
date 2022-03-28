@@ -11,17 +11,17 @@ curl -c $COOKIEJAR http://127.0.0.1:8000/admin/login/?next=/admin/ -vvv
 DJANGO_TOKEN="$(grep csrftoken $COOKIEJAR | sed 's/^.*csrftoken\s*//')"
 curl -b $COOKIEJAR -c $COOKIEJAR http://127.0.0.1:8000/admin/login/?next=/admin/ -H "X-CSRFToken: $DJANGO_TOKEN" -d "username=admin&password=redhat" -X POST -vvv
 
-curl -c $COOKIEJAR -b $COOKIEJAR -e http://127.0.0.1:8000/admin/login/?next=/admin/ -X GET "http://127.0.0.1:8000/scim/v2/Users" -vvv
+curl -c $COOKIEJAR -b $COOKIEJAR -X GET "http://127.0.0.1:8000/scim/v2/Users" -vvv
 ~~~
 
 #### User functionality
--   Lookup of users - Implemented
--   User Authentication - Implemented only using plaintext password properties file
--   Search and view users in management console - Implemented, currently supports only exact match search by userName
--   Add new users - Implemented
--   Delete users - Implemented
--   Modify User Attributes - Implemented, modifying username not yet supported
--   Automated/Manual Sync from SCIM to Keycloak - Not implemented
+-   Lookup of users :heavy_check_mark:
+-   User Authentication :x: - Implemented only using plaintext password properties file
+-   Search and view users in management console :heavy_check_mark: - currently only exact match search by userName
+-   Add new users :heavy_check_mark:
+-   Delete users :heavy_check_mark:
+-   Modify User Attributes :heavy_check_mark:, modifying username not yet supported
+-   Automated/Manual Sync of SCIM users and local Keycloak users - :x:
 
 ####  Groups functionality
 -   Current behavior: When a federated SCIM user logs in, this user's groups are added into keycloak.
@@ -82,14 +82,14 @@ curl -c $COOKIEJAR -b $COOKIEJAR -e http://127.0.0.1:8000/admin/login/?next=/adm
 
 * Query users with username filter (POST):
 ~~~
-$ curl -b cookies.txt -e http://127.0.0.1:8000/admin/login/?next=/admin/ -X POST -d @filter_jstephen.json "http://127.0.0.1:8000/scim/v2/Users/.search"
+$ curl -b cookies.txt -X POST -d @filter_testuser1.json "http://127.0.0.1:8000/scim/v2/Users/.search"
 ~~~
 
-    * Where `filter_jstephen.json` is
+    * Where `filter_testuser1.json` is
     ~~~
     {
         "schemas": ["urn:ietf:params:scim:api:messages:2.0:SearchRequest"],
-        "filter": "userName eq \"jstephen\""
+        "filter": "userName eq \"testuser1\""
     }
     ~~~
 * Retrieve user info, where $id is the id field returned from the user creation request (ex: 6) (GET)
@@ -132,7 +132,7 @@ $ {
 
 * Delete user (DELETE)
 ~~~
-$ curl -c cookies.txt -b cookies.txt -vvv -X DELETE http://127.0.0.1:8000/scim/v2/Users/$id
+$ curl -b cookies.txt -vvv -X DELETE http://127.0.0.1:8000/scim/v2/Users/$id
 ~~~
 
 #### Troubleshooting
