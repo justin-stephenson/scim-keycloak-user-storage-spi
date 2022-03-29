@@ -28,6 +28,7 @@ import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.RealmModel;
 import org.keycloak.models.UserCredentialModel;
 import org.keycloak.models.UserModel;
+import org.keycloak.models.credential.PasswordCredentialModel;
 import org.keycloak.storage.StorageId;
 import org.keycloak.storage.UserStorageProvider;
 import org.keycloak.storage.user.ImportedUserValidation;
@@ -41,10 +42,12 @@ import keycloak.scim_user_spi.schemas.SCIMUser;
 import org.keycloak.storage.user.UserQueryProvider;
 
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 import java.util.stream.Stream;
 
 import org.apache.http.HttpStatus;
@@ -66,12 +69,15 @@ ImportedUserValidation
 	protected ComponentModel model;
 	protected Scim scim;
 	private static final Logger logger = Logger.getLogger(SCIMUserStorageProvider.class);
+	protected final Set<String> supportedCredentialTypes = new HashSet<>();
 
 	public SCIMUserStorageProvider(KeycloakSession session, ComponentModel model, Properties properties, Scim scim) {
 		this.session = session;
 		this.model = model;
 		this.properties = properties;
 		this.scim = scim;
+
+		supportedCredentialTypes.add(PasswordCredentialModel.TYPE);
 	}
 
 	@Override
@@ -112,14 +118,12 @@ ImportedUserValidation
 		user.setEnabled(scim.getActive(scimuser));
 
 		for (String name : scim.getGroupsList(scimuser)) {
-			List<GroupModel> groups = session.groupLocalStorage().searchForGroupByName(realm, name, null, null);
-			GroupModel group;
+			Stream<GroupModel> groupsStream = session.groupLocalStorage().searchForGroupByNameStream(realm, name, null, null);
+			GroupModel group = groupsStream.findFirst().orElse(null);
 
-			if (groups.size() == 0) {
+			if (group == null) {
 				logger.infov("No group found, creating group: {0}", name);
 				group = session.groups().createGroup(realm, name);
-			} else {
-				group = groups.get(0);
 			}
 			user.joinGroup(group);
 		}
@@ -133,16 +137,20 @@ ImportedUserValidation
 
 	}
 
+	public Set<String> getSupportedCredentialTypes() {
+		return new HashSet<String>(this.supportedCredentialTypes);
+	}
+
 	// CredentialInputValidator methods
 	@Override
 	public boolean isConfiguredFor(RealmModel realm, UserModel user, String credentialType) {
 		String password = properties.getProperty(user.getUsername());
-		return credentialType.equals(CredentialModel.PASSWORD) && password != null;
+		return getSupportedCredentialTypes().contains(credentialType) && password != null;
 	}
 
 	@Override
 	public boolean supportsCredentialType(String credentialType) {
-		return credentialType.equals(CredentialModel.PASSWORD);
+		return getSupportedCredentialTypes().contains(credentialType);
 	}
 
 	@Override
