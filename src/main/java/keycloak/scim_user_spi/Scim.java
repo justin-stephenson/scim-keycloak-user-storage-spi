@@ -249,9 +249,9 @@ public class Scim {
 		user.setGroups(groups);
 
 
-		name.setGivenName("");
+		name.setGivenName("dummyfirstname");
 		name.setMiddleName("");
-		name.setFamilyName("");
+		name.setFamilyName("dummylastname");
 		user.setName(name);
 
 		email.setPrimary(true);
