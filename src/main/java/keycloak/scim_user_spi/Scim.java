@@ -90,7 +90,6 @@ public class Scim {
 		for (Cookie co: cookieStore.getCookies()) {
 			if (co.getName().contains("csrftoken")) {
 				csrf = co.getValue();
-				cookieStore.addCookie(co);
 			}
 		}
 
@@ -100,18 +99,12 @@ public class Scim {
 		headers.put("X-CSRFToken", csrf);
 
 		try {
+			/* Here we retrieve the Response sessionid and csrftoken cookie */
 			response = SimpleHttp.doPost(url, this.httpclient).header("X-CSRFToken", csrf).param("username",  username).param("password",  password).asResponse();
 			response.close();
 		} catch (Exception e) {
 			logger.error("Error: " + e.getMessage());
 			throw new RuntimeException(e);
-		}
-
-		/* Store the Response sessionid and new csrftoken cookie */
-		for (Cookie co: cookieStore.getCookies()) {
-			if (co.getName().contains("csrftoken") || co.getName().contains("sessionid")) {
-				cookieStore.addCookie(co);
-			}
 		}
 
 		this.logged_in = true;
