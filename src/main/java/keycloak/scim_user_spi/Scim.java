@@ -30,6 +30,7 @@ public class Scim {
 	String session_id;
 	String username;
 	String password;
+	Cookie csrf_cookie;
 	CloseableHttpClient httpclient;
 	Boolean logged_in = false;
 
@@ -85,30 +86,54 @@ public class Scim {
 
 
 		/* Store the Response csrftoken cookie */
-		String csrf = null;
-
 		for (Cookie co: cookieStore.getCookies()) {
 			if (co.getName().contains("csrftoken")) {
-				csrf = co.getValue();
+				csrf_cookie = co;
 			}
 		}
 
 		/* Perform login POST */
 		HashMap<String, String> headers = new HashMap<String, String>();
 
-		headers.put("X-CSRFToken", csrf);
+		headers.put("X-CSRFToken", this.csrf_cookie.getValue());
 
 		try {
 			/* Here we retrieve the Response sessionid and csrftoken cookie */
-			response = SimpleHttp.doPost(url, this.httpclient).header("X-CSRFToken", csrf).param("username",  username).param("password",  password).asResponse();
+			response = SimpleHttp.doPost(url, this.httpclient).header("X-CSRFToken", this.csrf_cookie.getValue()).param("username",  username).param("password",  password).asResponse();
 			response.close();
 		} catch (Exception e) {
 			logger.error("Error: " + e.getMessage());
 			throw new RuntimeException(e);
 		}
 
+		/* Add the original CSRF cookie */
+		cookieStore.addCookie(this.csrf_cookie);
 		this.logged_in = true;
 		return 0;
+
+	}
+
+	public boolean isValid(String username, String password) {
+		SimpleHttp.Response response = null;
+		com.fasterxml.jackson.databind.JsonNode result;
+		if (this.logged_in == false) {
+			this.csrfAuthLogin();
+		}
+
+		/* Build URL */
+
+		String server = model.getConfig().getFirst("scimurl");
+		String endpointurl = String.format("http://%s/creds/simple_pwd", server);
+
+		logger.infov("Sending POST request to {0}", endpointurl);
+		try {
+			response = SimpleHttp.doPost(endpointurl, this.httpclient).header("X-CSRFToken", this.csrf_cookie.getValue()).param("username",  username).param("password",  password).asResponse();
+			result = response.asJson();
+			return (result.get("result").get("validated").asBoolean());
+		} catch (Exception e) {
+			logger.debugv("Failed to authenticate user {0}: {1}", username, e);
+			return false;
+		}
 
 	}
 

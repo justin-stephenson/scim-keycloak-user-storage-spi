@@ -144,8 +144,7 @@ ImportedUserValidation
 	// CredentialInputValidator methods
 	@Override
 	public boolean isConfiguredFor(RealmModel realm, UserModel user, String credentialType) {
-		String password = properties.getProperty(user.getUsername());
-		return getSupportedCredentialTypes().contains(credentialType) && password != null;
+		return getSupportedCredentialTypes().contains(credentialType);
 	}
 
 	@Override
@@ -158,9 +157,17 @@ ImportedUserValidation
 		if (!supportsCredentialType(input.getType()) || !(input instanceof UserCredentialModel)) return false;
 
 		UserCredentialModel cred = (UserCredentialModel)input;
-		String password = properties.getProperty(user.getUsername());
-		if (password == null) return false;
-		return password.equals(cred.getValue());
+		/* The password can either be validated locally in keycloak (tried first)
+		   or in the SCIM server */
+		if (session.userCredentialManager().isConfiguredLocally(realm, user, input.getType())) {
+			logger.debugv("Local password validation for {0}", user.getUsername());
+			// return false in order to fallback to the next validator
+			return false;
+		} else {
+			logger.debugv("Delegated password validation for {0}", user.getUsername());
+			Scim scim = this.scim;
+			return scim.isValid(user.getUsername(), input.getChallengeResponse());
+		}
 	}
 
 	// ImportedUserValidation methods
