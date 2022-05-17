@@ -95,17 +95,6 @@ public class SCIMUserStorageProviderFactory implements UserStorageProviderFactor
 
 	@Override
 	public void init(Config.Scope config) {
-		InputStream is = getClass().getClassLoader().getResourceAsStream("/users.properties");
-
-		if (is == null) {
-			logger.warn("Could not find users.properties in classpath");
-		} else {
-			try {
-				properties.load(is);
-			} catch (IOException ex) {
-				logger.error("Failed to load users.properties file", ex);
-			}
-		}
 	}
 
 	@Override
