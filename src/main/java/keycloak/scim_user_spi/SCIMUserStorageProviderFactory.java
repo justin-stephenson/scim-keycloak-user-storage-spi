@@ -41,7 +41,6 @@ public class SCIMUserStorageProviderFactory implements UserStorageProviderFactor
 
 	private static final Logger logger = Logger.getLogger(SCIMUserStorageProviderFactory.class);
 	public static final String PROVIDER_NAME = "scim";
-	protected Properties properties = new Properties();
 	protected static final List<ProviderConfigProperty> configMetadata;
 
 	static {
@@ -94,12 +93,8 @@ public class SCIMUserStorageProviderFactory implements UserStorageProviderFactor
 	}
 
 	@Override
-	public void init(Config.Scope config) {
-	}
-
-	@Override
 	public SCIMUserStorageProvider create(KeycloakSession session, ComponentModel model) {
 		Scim scim = new Scim(model);
-		return new SCIMUserStorageProvider(session, model, properties, scim);
+		return new SCIMUserStorageProvider(session, model, scim);
 	}
 }

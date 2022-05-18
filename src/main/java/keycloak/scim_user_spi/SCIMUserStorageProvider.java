@@ -46,7 +46,6 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Set;
 import java.util.stream.Stream;
 
@@ -65,16 +64,14 @@ UserQueryProvider.Streams,
 ImportedUserValidation
 {
 	protected KeycloakSession session;
-	protected Properties properties;
 	protected ComponentModel model;
 	protected Scim scim;
 	private static final Logger logger = Logger.getLogger(SCIMUserStorageProvider.class);
 	protected final Set<String> supportedCredentialTypes = new HashSet<>();
 
-	public SCIMUserStorageProvider(KeycloakSession session, ComponentModel model, Properties properties, Scim scim) {
+	public SCIMUserStorageProvider(KeycloakSession session, ComponentModel model, Scim scim) {
 		this.session = session;
 		this.model = model;
-		this.properties = properties;
 		this.scim = scim;
 
 		supportedCredentialTypes.add(PasswordCredentialModel.TYPE);
