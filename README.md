@@ -16,7 +16,7 @@ curl -c $COOKIEJAR -b $COOKIEJAR -X GET "http://127.0.0.1:8000/scim/v2/Users" -v
 
 #### User functionality
 -   Lookup of users :heavy_check_mark:
--   User Authentication :x: - Implemented only using plaintext password properties file
+-   User Authentication :heavy_check_mark:
 -   Search and view users in management console :heavy_check_mark: - currently only exact match search by userName
 -   Add new users :heavy_check_mark:
 -   Delete users :heavy_check_mark:
@@ -30,7 +30,7 @@ curl -c $COOKIEJAR -b $COOKIEJAR -X GET "http://127.0.0.1:8000/scim/v2/Users" -v
 
 - Deploy keycloak plugin
 ~~~
-	KEYCLOAK_PATH=/path/to/keycloak/keycloak-17.0.0 sh -x ./redeploy-plugin.sh
+KEYCLOAK_PATH=/path/to/keycloak/keycloak-17.0.0 sh -x ./redeploy-plugin.sh
 ~~~
 
 - Download and run [keycloak](https://github.com/keycloak/keycloak#getting-started)
