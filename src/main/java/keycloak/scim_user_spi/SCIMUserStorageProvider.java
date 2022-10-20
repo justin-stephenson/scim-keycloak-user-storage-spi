@@ -23,14 +23,17 @@ import org.keycloak.component.ComponentModel;
 import org.keycloak.credential.CredentialInput;
 import org.keycloak.credential.CredentialInputValidator;
 import org.keycloak.credential.CredentialModel;
+import org.keycloak.credential.LegacyUserCredentialManager;
 import org.keycloak.models.GroupModel;
 import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.RealmModel;
 import org.keycloak.models.UserCredentialModel;
 import org.keycloak.models.UserModel;
 import org.keycloak.models.credential.PasswordCredentialModel;
+import org.keycloak.storage.DatastoreProvider;
 import org.keycloak.storage.StorageId;
 import org.keycloak.storage.UserStorageProvider;
+import org.keycloak.storage.datastore.LegacyDatastoreProvider;
 import org.keycloak.storage.user.ImportedUserValidation;
 import org.keycloak.storage.user.UserLookupProvider;
 import org.keycloak.storage.user.UserRegistrationProvider;
@@ -91,7 +94,7 @@ ImportedUserValidation
 
 	@Override
 	public UserModel getUserByUsername(RealmModel realm, String username) {
-		UserModel user = session.userLocalStorage().getUserByUsername(realm,  username);
+		UserModel user = ((LegacyDatastoreProvider) session.getProvider(DatastoreProvider.class)).userLocalStorage().getUserByUsername(realm,  username);
 		if (user != null) {
 			logger.info("User already exists in keycloak");
 			return user;
@@ -102,12 +105,13 @@ ImportedUserValidation
 
 	protected UserModel createUserInKeycloak(RealmModel realm, String username) {
 		Scim scim = this.scim;
+		((LegacyDatastoreProvider) session.getProvider(DatastoreProvider.class)).groupStorageManager().getGroupsCountByNameContaining(realm, username);
 
 		SCIMUser scimuser = scim.getUserByUsername(username);
 		if (scimuser.getTotalResults() == 0) {
 			return null;
 		}
-		UserModel user = session.userLocalStorage().addUser(realm,  username);
+		UserModel user = ((LegacyDatastoreProvider) session.getProvider(DatastoreProvider.class)).userLocalStorage().addUser(realm,  username);
 		user.setEmail(scim.getEmail(scimuser));
 		user.setFirstName(scim.getFirstName(scimuser));
 		user.setLastName(scim.getLastName(scimuser));
@@ -115,7 +119,7 @@ ImportedUserValidation
 		user.setEnabled(scim.getActive(scimuser));
 
 		for (String name : scim.getGroupsList(scimuser)) {
-			Stream<GroupModel> groupsStream = session.groupLocalStorage().searchForGroupByNameStream(realm, name, null, null);
+			Stream<GroupModel> groupsStream = session.groups().searchForGroupByNameStream(realm, name, null, null);
 			GroupModel group = groupsStream.findFirst().orElse(null);
 
 			if (group == null) {
@@ -156,7 +160,7 @@ ImportedUserValidation
 		UserCredentialModel cred = (UserCredentialModel)input;
 		/* The password can either be validated locally in keycloak (tried first)
 		   or in the SCIM server */
-		if (session.userCredentialManager().isConfiguredLocally(realm, user, input.getType())) {
+		if (((LegacyUserCredentialManager) user.credentialManager()).isConfiguredLocally(input.getType())) {
 			logger.debugv("Local password validation for {0}", user.getUsername());
 			// return false in order to fallback to the next validator
 			return false;
@@ -249,7 +253,7 @@ ImportedUserValidation
 		SCIMUser scimuser = scim.getUserByUsername(search);
 		if (scimuser.getTotalResults() > 0) {
 			logger.info("User found by username!");
-			if (session.userLocalStorage().getUserByUsername(realm, search) == null) {
+			if (((LegacyDatastoreProvider) session.getProvider(DatastoreProvider.class)).userLocalStorage().getUserByUsername(realm, search) == null) {
 				UserModel user = getUserByUsername(scim.getUserName(scimuser), realm);
 				users.add(user);
 			} else {
