@@ -63,6 +63,33 @@ public class SCIMUserStorageProviderFactory implements UserStorageProviderFactor
 				.label("Login password")
 				.helpText("password to authenticate through the login page")
 				.add()
+				/* Add Integration domain option */
+				.property().name("addintgdomain")
+				.type(ProviderConfigProperty.BOOLEAN_TYPE)
+				.label("Add Integration Domain")
+				.helpText("Option to automatically enroll to an integration domain")
+				.add()
+				/* Add Integration domain inputs */
+				.property().name("domainname")
+				.type(ProviderConfigProperty.STRING_TYPE)
+				.label("Integration domain name")
+				.helpText("Integration domain name")
+				.add()
+				.property().name("domaindesc")
+				.type(ProviderConfigProperty.STRING_TYPE)
+				.label("Integration domain description")
+				.helpText("Integration domain description")
+				.add()
+				.property().name("domain")
+				.type(ProviderConfigProperty.STRING_TYPE)
+				.label("Integration domain")
+				.helpText("Integration domain, e.g. http://testdomain.com")
+				.add()
+				.property().name("idprovider")
+				.type(ProviderConfigProperty.STRING_TYPE)
+				.label("Integration domain provider")
+				.helpText("Integration domain backend provider: IPA, AD, LDAP")
+				.add()
 				.build();
 	}
 
@@ -84,6 +111,13 @@ public class SCIMUserStorageProviderFactory implements UserStorageProviderFactor
 		} catch (Exception e) {
 			logger.info(e);
 			throw new ComponentValidationException("Cannot connect to provided URL!");
+		}
+
+		Boolean add_set = Boolean.valueOf(config.getConfig().getFirst("addintgdomain"));
+
+		if (add_set) {
+			Boolean result = scim.domainsRequest();
+			logger.infov("IntgDomains Result is {0}", result);
 		}
 	}
 
