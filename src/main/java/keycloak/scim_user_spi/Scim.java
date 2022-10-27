@@ -18,6 +18,7 @@ import org.keycloak.broker.provider.util.SimpleHttp;
 
 import keycloak.scim_user_spi.schemas.SCIMSearchRequest;
 import keycloak.scim_user_spi.schemas.SCIMUser;
+import keycloak.scim_user_spi.schemas.IntegrationDomain;
 
 
 public class Scim {
@@ -137,6 +138,25 @@ public class Scim {
 
 	}
 
+	public boolean domainsRequest() {
+		IntegrationDomain intgdomain = this.setupIntegrationDomain();
+
+		SimpleHttp.Response response = null;
+		com.fasterxml.jackson.databind.JsonNode result;
+
+		String domainurl = "domain";
+
+		try {
+			response = clientRequest(domainurl, "POST", intgdomain);
+			result = response.asJson();
+			logger.infov("Result is {0}", result);
+			return true;
+		} catch (Exception e) {
+			logger.errorv("Failed to add integration domain: {0}", e.getMessage());
+			throw new RuntimeException(e);
+		}
+	}
+
 	public <T> SimpleHttp.Response clientRequest(String endpoint, String method, T entity) throws Exception {
 		SimpleHttp.Response response = null;
 
@@ -146,7 +166,12 @@ public class Scim {
 
 		/* Build URL */
 		String server = model.getConfig().getFirst("scimurl");
-		String endpointurl = String.format("http://%s/scim/v2/%s", server, endpoint);
+		String endpointurl;
+		if (endpoint.contains("domain")) {
+			endpointurl = String.format("http://%s/domains/v1/%s/", server, endpoint);
+		} else {
+			endpointurl = String.format("http://%s/scim/v2/%s", server, endpoint);
+		}
 
 		logger.infov("Sending {0} request to {1}", method.toString(), endpointurl);
 
@@ -159,10 +184,11 @@ public class Scim {
 				response = SimpleHttp.doDelete(endpointurl, this.httpclient).asResponse();
 				break;
 			case "POST":
-				response = SimpleHttp.doPost(endpointurl, this.httpclient).json(entity).asResponse();
+				/* Header is needed for domains endpoint only, but use it here anyway */
+				response = SimpleHttp.doPost(endpointurl, this.httpclient).header("X-CSRFToken", this.csrf_cookie.getValue()).json(entity).asResponse();
 				break;
 			case "PUT":
-				response = SimpleHttp.doPut(endpointurl, this.httpclient).json(entity).asResponse();
+				response = SimpleHttp.doPut(endpointurl, this.httpclient).header("X-CSRFToken", this.csrf_cookie.getValue()).json(entity).asResponse();
 				break;
 			default:
 				logger.warn("Unknown HTTP method, skipping");
@@ -190,6 +216,17 @@ public class Scim {
 		logger.infov("Schema: {0}",  SCHEMA_API_MESSAGES_SEARCHREQUEST);
 
 		return search;
+	}
+
+	private IntegrationDomain setupIntegrationDomain() {
+		IntegrationDomain intgdomain = new IntegrationDomain();
+
+		intgdomain.setName(model.getConfig().getFirst("domainname"));
+		intgdomain.setDomain(model.getConfig().getFirst("domain"));
+		intgdomain.setDescription(model.getConfig().getFirst("domaindesc"));
+		intgdomain.setIdProvider(model.getConfig().getFirst("idprovider"));
+
+		return intgdomain;
 	}
 
 	private SCIMUser getUserByAttr(String username, String attribute) {
