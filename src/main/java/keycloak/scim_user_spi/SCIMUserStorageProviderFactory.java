@@ -30,7 +30,7 @@ import org.keycloak.provider.ProviderConfigurationBuilder;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
-
+import java.util.LinkedList;
 import java.util.List;
 
 /**
@@ -41,9 +41,14 @@ public class SCIMUserStorageProviderFactory implements UserStorageProviderFactor
 
 	private static final Logger logger = Logger.getLogger(SCIMUserStorageProviderFactory.class);
 	public static final String PROVIDER_NAME = "scim";
+	protected static final List<String> PROVIDERS = new LinkedList<>();
 	protected static final List<ProviderConfigProperty> configMetadata;
 
 	static {
+		PROVIDERS.add("ipa");
+		PROVIDERS.add("ad");
+		PROVIDERS.add("ldap");
+
 		configMetadata = ProviderConfigurationBuilder.create()
 				/* SCIMv2 server url*/
 				.property().name("scimurl")
@@ -73,22 +78,47 @@ public class SCIMUserStorageProviderFactory implements UserStorageProviderFactor
 				.property().name("domainname")
 				.type(ProviderConfigProperty.STRING_TYPE)
 				.label("Integration domain name")
-				.helpText("Integration domain name")
+				.helpText("Domain name")
 				.add()
 				.property().name("domaindesc")
 				.type(ProviderConfigProperty.STRING_TYPE)
-				.label("Integration domain description")
-				.helpText("Integration domain description")
+				.label("Optional description")
+				.helpText("Optional description")
 				.add()
-				.property().name("domain")
+				.property().name("domainurl")
 				.type(ProviderConfigProperty.STRING_TYPE)
-				.label("Integration domain")
-				.helpText("Integration domain, e.g. http://testdomain.com")
+				.label("Integration domain URL")
+				.helpText("The connection URL to the identity server, "
+						+ "e.g. https://client.ipa.test.")
+				.add()
+				.property().name("domainclientid")
+				.type(ProviderConfigProperty.STRING_TYPE)
+				.label("Integration domain client ID")
+				.helpText("Temporary admin service username")
+				.add()
+				.property().name("domainclientsecret")
+				.type(ProviderConfigProperty.PASSWORD)
+				.label("Integration domain client secret")
+				.helpText("Temporary admin service password")
 				.add()
 				.property().name("idprovider")
-				.type(ProviderConfigProperty.STRING_TYPE)
+				.type(ProviderConfigProperty.LIST_TYPE)
+				.options(PROVIDERS)
 				.label("Integration domain provider")
-				.helpText("Integration domain backend provider: IPA, AD, LDAP")
+				.helpText("Identity provider type")
+				.add()
+				.property().name("extraattrs")
+				.type(ProviderConfigProperty.STRING_TYPE)
+				.label("User extra attributes")
+				.helpText("Comma separated list of LDAP attributes fetched along"
+						+ "with the usual set of attributes, e.g. mail:mail, sn:sn, "
+						+ "givenname:givenname")
+				.add()
+				.property().name("cacert")
+				.type(ProviderConfigProperty.STRING_TYPE)
+				.label("LDAP TLS CA Certificate")
+				.helpText("Path to CA Certificate used for LDAP authentication,"
+						+ " e.g. /etc/openldap/certs/ca.pem")
 				.add()
 				.build();
 	}

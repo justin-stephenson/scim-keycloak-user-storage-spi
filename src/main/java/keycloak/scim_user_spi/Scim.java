@@ -14,6 +14,8 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.keycloak.component.ComponentModel;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import org.keycloak.broker.provider.util.SimpleHttp;
 
 import keycloak.scim_user_spi.schemas.SCIMSearchRequest;
@@ -218,13 +220,37 @@ public class Scim {
 		return search;
 	}
 
+	/*
+	 * 	@JsonProperty("integration_domain_url")
+	private String integrationDomainUrl;
+	@JsonProperty("integration_domain_name")
+	private String integrationDomainName;
+	@JsonProperty("description")
+	private String description;
+	@JsonProperty("client_id")
+	private String clientId;
+	@JsonProperty("client_secret")
+	private String clientSecret;
+	@JsonProperty("id_provider")
+	private String idProvider;
+	@JsonProperty("user_extra_attrs")
+	private String userExtraAttrs;
+	@JsonProperty("ldap_tls_cacert")
+	private String ldapTlsCacert;
+	 */
 	private IntegrationDomain setupIntegrationDomain() {
 		IntegrationDomain intgdomain = new IntegrationDomain();
 
 		intgdomain.setName(model.getConfig().getFirst("domainname"));
-		intgdomain.setDomain(model.getConfig().getFirst("domain"));
 		intgdomain.setDescription(model.getConfig().getFirst("domaindesc"));
+		intgdomain.setIntegrationDomainUrl(model.getConfig().getFirst("domainurl"));
+		intgdomain.setClientId(model.getConfig().getFirst("domainclientid"));
+		intgdomain.setClientSecret(model.getConfig().getFirst("domainclientsecret"));
 		intgdomain.setIdProvider(model.getConfig().getFirst("idprovider"));
+		intgdomain.setUserExtraAttrs(model.getConfig().getFirst("extraattrs"));
+		intgdomain.setLdapTlsCacert(model.getConfig().getFirst("cacert"));
+
+		logger.infov("Intgdomain values are {0}", intgdomain.toString());
 
 		return intgdomain;
 	}
