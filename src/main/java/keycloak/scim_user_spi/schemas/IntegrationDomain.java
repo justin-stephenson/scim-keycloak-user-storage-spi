@@ -10,26 +10,55 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 
+
+/*
+ * {"integration_domain_url":"https://client.ipa.test","name":"ipa.test",
+ * "description":"testdescription","client_id":"admin","client_secret":"Secret123",
+ * "id_provider":"IPA","user_extra_attrs":"mail:mail, sn:sn, givenname:givenname",
+ * "ldap_tls_cacert":"/path/to/cert.pem"}
+ */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonPropertyOrder({
+	"integration_domain_url",
 	"name",
 	"description",
-	"domain",
-	"id_provider"
+	"client_id",
+	"client_secret",
+	"id_provider",
+	"user_extra_attrs",
+	"ldap_tls_cacert"
 })
 @Generated("jsonschema2pojo")
 public class IntegrationDomain {
 
+	@JsonProperty("integration_domain_url")
+	private String integrationDomainUrl;
 	@JsonProperty("name")
 	private String name;
 	@JsonProperty("description")
 	private String description;
-	@JsonProperty("domain")
-	private String domain;
+	@JsonProperty("client_id")
+	private String clientId;
+	@JsonProperty("client_secret")
+	private String clientSecret;
 	@JsonProperty("id_provider")
 	private String idProvider;
+	@JsonProperty("user_extra_attrs")
+	private String userExtraAttrs;
+	@JsonProperty("ldap_tls_cacert")
+	private String ldapTlsCacert;
 	@JsonIgnore
 	private Map<String, Object> additionalProperties = new HashMap<String, Object>();
+
+	@JsonProperty("integration_domain_url")
+	public String getIntegrationDomainUrl() {
+		return integrationDomainUrl;
+	}
+
+	@JsonProperty("integration_domain_url")
+	public void setIntegrationDomainUrl(String integrationDomainUrl) {
+		this.integrationDomainUrl = integrationDomainUrl;
+	}
 
 	@JsonProperty("name")
 	public String getName() {
@@ -51,14 +80,24 @@ public class IntegrationDomain {
 		this.description = description;
 	}
 
-	@JsonProperty("domain")
-	public String getDomain() {
-		return domain;
+	@JsonProperty("client_id")
+	public String getClientId() {
+		return clientId;
 	}
 
-	@JsonProperty("domain")
-	public void setDomain(String domain) {
-		this.domain = domain;
+	@JsonProperty("client_id")
+	public void setClientId(String clientId) {
+		this.clientId = clientId;
+	}
+
+	@JsonProperty("client_secret")
+	public String getClientSecret() {
+		return clientSecret;
+	}
+
+	@JsonProperty("client_secret")
+	public void setClientSecret(String clientSecret) {
+		this.clientSecret = clientSecret;
 	}
 
 	@JsonProperty("id_provider")
@@ -69,6 +108,26 @@ public class IntegrationDomain {
 	@JsonProperty("id_provider")
 	public void setIdProvider(String idProvider) {
 		this.idProvider = idProvider;
+	}
+
+	@JsonProperty("user_extra_attrs")
+	public String getUserExtraAttrs() {
+		return userExtraAttrs;
+	}
+
+	@JsonProperty("user_extra_attrs")
+	public void setUserExtraAttrs(String userExtraAttrs) {
+		this.userExtraAttrs = userExtraAttrs;
+	}
+
+	@JsonProperty("ldap_tls_cacert")
+	public String getLdapTlsCacert() {
+		return ldapTlsCacert;
+	}
+
+	@JsonProperty("ldap_tls_cacert")
+	public void setLdapTlsCacert(String ldapTlsCacert) {
+		this.ldapTlsCacert = ldapTlsCacert;
 	}
 
 	@JsonAnyGetter
