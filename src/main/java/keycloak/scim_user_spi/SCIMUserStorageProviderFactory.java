@@ -27,11 +27,17 @@ import org.keycloak.component.ComponentValidationException;
 import org.keycloak.storage.UserStorageProviderFactory;
 import org.keycloak.provider.ProviderConfigProperty;
 import org.keycloak.provider.ProviderConfigurationBuilder;
+import org.keycloak.truststore.TruststoreProvider;
 import java.io.IOException;
 import java.io.InputStream;
+import java.security.cert.CertificateEncodingException;
+import java.security.cert.X509Certificate;
 import java.util.Properties;
 import java.util.LinkedList;
+import javax.security.auth.x500.X500Principal;
+import java.util.Base64;
 import java.util.List;
+import java.util.Map;
 
 /**
  * @author <a href="mailto:jstephen@redhat.com">Justin Stephenson</a>
@@ -114,12 +120,6 @@ public class SCIMUserStorageProviderFactory implements UserStorageProviderFactor
 						+ "with the usual set of attributes, e.g. mail:mail, sn:sn, "
 						+ "givenname:givenname")
 				.add()
-				.property().name("cacert")
-				.type(ProviderConfigProperty.STRING_TYPE)
-				.label("LDAP TLS CA Certificate")
-				.helpText("Path to CA Certificate used for LDAP authentication,"
-						+ " e.g. /etc/openldap/certs/ca.pem")
-				.add()
 				.property().name("user_object_classes")
 				.type(ProviderConfigProperty.STRING_TYPE)
 				.label("LDAP User Object Classes")
@@ -146,10 +146,46 @@ public class SCIMUserStorageProviderFactory implements UserStorageProviderFactor
 		return configMetadata;
 	}
 
+	private String trustStoreInit(KeycloakSession session) {
+		String encodedCert = null;
+		TruststoreProvider truststoreProvider = session.getProvider(TruststoreProvider.class);
+		if (truststoreProvider == null || truststoreProvider.getTruststore() == null) {
+			logger.infov("Truststore not available");
+			throw new ComponentValidationException("Trust Store not available");
+		}
+
+		/* Get certificates from the configured truststore as a map where
+		 * the key is the X500Principal of the corresponding X509Certificate */
+		Map<X500Principal, X509Certificate> rootCerts = truststoreProvider.getRootCertificates();
+		Map<X500Principal, X509Certificate> intermediateCerts = truststoreProvider.getIntermediateCertificates();
+
+		for (X509Certificate cert : rootCerts.values()) {
+			logger.infov(cert.getIssuerX500Principal().getName());
+			try {
+				encodedCert = Base64.getEncoder().encodeToString(cert.getEncoded());
+			} catch (CertificateEncodingException e) {
+				throw new ComponentValidationException("CertificateEncoding error");
+			}
+		}
+
+		for (X509Certificate cert : intermediateCerts.values()) {
+			logger.infov(cert.getIssuerX500Principal().getName());
+			try {
+				encodedCert = Base64.getEncoder().encodeToString(cert.getEncoded());
+			} catch (CertificateEncodingException e) {
+				throw new ComponentValidationException("CertificateEncoding error");
+			}
+		}
+
+		return encodedCert;
+	}
+
 	@Override
 	public void validateConfiguration(KeycloakSession session, RealmModel realm, ComponentModel config)
 			throws ComponentValidationException {
 		Scim scim = new Scim(config);
+
+		String tlsCert = trustStoreInit(session);
 
 		SimpleHttp.Response response;
 
@@ -169,7 +205,7 @@ public class SCIMUserStorageProviderFactory implements UserStorageProviderFactor
 			logger.infov("Delete intgDomains Result is {0}", result);
 		}
 		if (add_set) {
-			Boolean result = scim.domainsRequest();
+			Boolean result = scim.domainsRequest(tlsCert);
 			logger.infov("Add intgDomains Result is {0}", result);
 		}
 	}
