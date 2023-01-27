@@ -141,8 +141,8 @@ public class Scim {
 
 	}
 
-	public boolean domainsRequest() {
-		IntegrationDomain intgdomain = this.setupIntegrationDomain();
+	public boolean domainsRequest(String caCert) {
+		IntegrationDomain intgdomain = setupIntegrationDomain(caCert);
 
 		SimpleHttp.Response response = null;
 		com.fasterxml.jackson.databind.JsonNode result;
@@ -239,7 +239,7 @@ public class Scim {
 		return search;
 	}
 
-	private IntegrationDomain setupIntegrationDomain() {
+	private IntegrationDomain setupIntegrationDomain(String cacert) {
 		IntegrationDomain intgdomain = new IntegrationDomain();
 
 		intgdomain.setName(model.getConfig().getFirst("domainname"));
@@ -251,7 +251,6 @@ public class Scim {
 		intgdomain.setUsersDn(model.getConfig().getFirst("users_dn"));
 
 		/* Optional fields */
-		String cacert = model.getConfig().getFirst("cacert");
 		String extra = model.getConfig().getFirst("extraattrs");
 		String oc =  model.getConfig().getFirst("user_object_classes");
 
