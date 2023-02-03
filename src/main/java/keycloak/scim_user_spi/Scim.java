@@ -3,6 +3,7 @@ package keycloak.scim_user_spi;
 import org.jboss.logging.Logger;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import org.apache.http.client.CookieStore;
@@ -220,24 +221,6 @@ public class Scim {
 		return search;
 	}
 
-	/*
-	 * 	@JsonProperty("integration_domain_url")
-	private String integrationDomainUrl;
-	@JsonProperty("integration_domain_name")
-	private String integrationDomainName;
-	@JsonProperty("description")
-	private String description;
-	@JsonProperty("client_id")
-	private String clientId;
-	@JsonProperty("client_secret")
-	private String clientSecret;
-	@JsonProperty("id_provider")
-	private String idProvider;
-	@JsonProperty("user_extra_attrs")
-	private String userExtraAttrs;
-	@JsonProperty("ldap_tls_cacert")
-	private String ldapTlsCacert;
-	 */
 	private IntegrationDomain setupIntegrationDomain() {
 		IntegrationDomain intgdomain = new IntegrationDomain();
 
@@ -247,10 +230,23 @@ public class Scim {
 		intgdomain.setClientId(model.getConfig().getFirst("domainclientid"));
 		intgdomain.setClientSecret(model.getConfig().getFirst("domainclientsecret"));
 		intgdomain.setIdProvider(model.getConfig().getFirst("idprovider"));
-		intgdomain.setUserExtraAttrs(model.getConfig().getFirst("extraattrs"));
-		intgdomain.setLdapTlsCacert(model.getConfig().getFirst("cacert"));
+		intgdomain.setUsersDn(model.getConfig().getFirst("users_dn"));
 
-		logger.infov("Intgdomain values are {0}", intgdomain.toString());
+		/* Optional fields */
+		String cacert = model.getConfig().getFirst("cacert");
+		String extra = model.getConfig().getFirst("extraattrs");
+		String oc =  model.getConfig().getFirst("user_object_classes");
+
+		if (cacert != null && !cacert.isEmpty()) {
+			intgdomain.setLdapTlsCacert(cacert);
+		}
+		if (extra != null && !extra.isEmpty()) {
+			intgdomain.setUserExtraAttrs(extra);
+		}
+		if (oc != null && !oc.isEmpty()) {
+			List<String> oclist = Arrays.asList(oc.split("\\s*,\\s*"));
+			intgdomain.setUserObjectClasses(oclist);
+		}
 
 		return intgdomain;
 	}
