@@ -1,6 +1,8 @@
 package keycloak.scim_user_spi.schemas;
 
 import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import javax.annotation.processing.Generated;
 import com.fasterxml.jackson.annotation.JsonAnyGetter;
@@ -12,11 +14,20 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 
 
 /*
- * {"integration_domain_url":"https://client.ipa.test","name":"ipa.test",
- * "description":"testdescription","client_id":"admin","client_secret":"Secret123",
- * "id_provider":"IPA","user_extra_attrs":"mail:mail, sn:sn, givenname:givenname",
- * "ldap_tls_cacert":"/path/to/cert.pem"}
+ *  {
+      "integration_domain_url": "https://client.ipa.test",
+      "name": "ipa.test",
+      "description": "testdescription",
+      "client_id": "admin",
+      "client_secret": "Secret123",
+      "id_provider": "ipa",
+      "user_extra_attrs": "mail:mail, sn:sn, givenname:givenname",
+      "ldap_tls_cacert": "/path/to/ca.pem",
+      "user_object_classes": ["inetOrgPerson", "organizationalPerson", "top"],
+      "users_dn": "ou=users,dc=ipa,dc=test"
+    }
  */
+
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonPropertyOrder({
 	"integration_domain_url",
@@ -26,7 +37,9 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 	"client_secret",
 	"id_provider",
 	"user_extra_attrs",
-	"ldap_tls_cacert"
+	"ldap_tls_cacert",
+	"user_object_classes",
+	"users_dn"
 })
 @Generated("jsonschema2pojo")
 public class IntegrationDomain {
@@ -47,8 +60,12 @@ public class IntegrationDomain {
 	private String userExtraAttrs;
 	@JsonProperty("ldap_tls_cacert")
 	private String ldapTlsCacert;
+	@JsonProperty("user_object_classes")
+	private List<String> userObjectClasses;
+	@JsonProperty("users_dn")
+	private String usersDn;
 	@JsonIgnore
-	private Map<String, Object> additionalProperties = new HashMap<String, Object>();
+	private Map<String, Object> additionalProperties = new LinkedHashMap<String, Object>();
 
 	@JsonProperty("integration_domain_url")
 	public String getIntegrationDomainUrl() {
@@ -128,6 +145,26 @@ public class IntegrationDomain {
 	@JsonProperty("ldap_tls_cacert")
 	public void setLdapTlsCacert(String ldapTlsCacert) {
 		this.ldapTlsCacert = ldapTlsCacert;
+	}
+
+	@JsonProperty("user_object_classes")
+	public List<String> getUserObjectClasses() {
+		return userObjectClasses;
+	}
+
+	@JsonProperty("user_object_classes")
+	public void setUserObjectClasses(List<String> userObjectClasses) {
+		this.userObjectClasses = userObjectClasses;
+	}
+
+	@JsonProperty("users_dn")
+	public String getUsersDn() {
+		return usersDn;
+	}
+
+	@JsonProperty("users_dn")
+	public void setUsersDn(String usersDn) {
+		this.usersDn = usersDn;
 	}
 
 	@JsonAnyGetter
