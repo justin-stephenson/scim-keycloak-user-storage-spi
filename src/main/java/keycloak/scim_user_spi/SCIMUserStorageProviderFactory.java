@@ -120,6 +120,18 @@ public class SCIMUserStorageProviderFactory implements UserStorageProviderFactor
 				.helpText("Path to CA Certificate used for LDAP authentication,"
 						+ " e.g. /etc/openldap/certs/ca.pem")
 				.add()
+				.property().name("user_object_classes")
+				.type(ProviderConfigProperty.STRING_TYPE)
+				.label("LDAP User Object Classes")
+				.helpText("OPTIONAL. The object classes of a user entry in LDAP, comma separated,"
+						+ " e.g. inetOrgPerson, organizationalPerson")
+				.add()
+				.property().name("users_dn")
+				.type(ProviderConfigProperty.STRING_TYPE)
+				.label("LDAP Users DN")
+				.helpText("OPTIONAL. Full DN of the LDAP tree where your users are,"
+						+ " e.g. cn=users,dc=ipa,dc=test")
+				.add()
 				.build();
 	}
 
