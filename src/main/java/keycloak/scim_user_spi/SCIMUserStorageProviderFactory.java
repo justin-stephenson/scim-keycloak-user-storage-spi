@@ -132,6 +132,12 @@ public class SCIMUserStorageProviderFactory implements UserStorageProviderFactor
 				.helpText("OPTIONAL. Full DN of the LDAP tree where your users are,"
 						+ " e.g. cn=users,dc=ipa,dc=test")
 				.add()
+				/* Remove existing integration domain option */
+				.property().name("delintgdomain")
+				.type(ProviderConfigProperty.BOOLEAN_TYPE)
+				.label("Remove existing integration domain")
+				.helpText("Option to remove existing integration domain before executing the enrollment to a new integration domain")
+				.add()
 				.build();
 	}
 
@@ -155,11 +161,16 @@ public class SCIMUserStorageProviderFactory implements UserStorageProviderFactor
 			throw new ComponentValidationException("Cannot connect to provided URL!");
 		}
 
+		Boolean del_set = Boolean.valueOf(config.getConfig().getFirst("delintgdomain"));
 		Boolean add_set = Boolean.valueOf(config.getConfig().getFirst("addintgdomain"));
 
+		if (del_set) {
+			Boolean result = scim.domainsRemove();
+			logger.infov("Delete intgDomains Result is {0}", result);
+		}
 		if (add_set) {
 			Boolean result = scim.domainsRequest();
-			logger.infov("IntgDomains Result is {0}", result);
+			logger.infov("Add intgDomains Result is {0}", result);
 		}
 	}
 
