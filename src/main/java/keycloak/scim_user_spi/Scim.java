@@ -160,6 +160,24 @@ public class Scim {
 		}
 	}
 
+	public boolean domainsRemove() {
+		SimpleHttp.Response response = null;
+		com.fasterxml.jackson.databind.JsonNode result;
+
+		/* Currently only a single domain is supported */
+		String domainurl = "domain/1";
+
+		try {
+			response = clientRequest(domainurl, "DELETE", null);
+			result = response.asJson();
+			logger.infov("Result is {0}", result);
+			return true;
+		} catch (Exception e) {
+			logger.errorv("Failed to remove existing integration domain: {0}", e.getMessage());
+			throw new RuntimeException(e);
+		}
+	}
+
 	public <T> SimpleHttp.Response clientRequest(String endpoint, String method, T entity) throws Exception {
 		SimpleHttp.Response response = null;
 
