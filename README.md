@@ -17,10 +17,13 @@ curl -c $COOKIEJAR -b $COOKIEJAR -X GET "http://127.0.0.1:8000/scim/v2/Users" -v
 #### User functionality
 -   Lookup of users :heavy_check_mark:
 -   User Authentication :heavy_check_mark:
--   Search and view users in management console :heavy_check_mark: - currently only exact match search by userName
+-   Search and view users in management console :heavy_check_mark:
+    - currently only exact match search by userName
 -   Add new users :heavy_check_mark:
 -   Delete users :heavy_check_mark:
--   Modify User Attributes :heavy_check_mark:, modifying username not yet supported
+-   Rename User :heavy_check_mark:
+    - Email must also be renamed (unique), or in keycloak realm settings set Login with email "Off" and Duplicate Emails "On"
+-   Modify User Attributes :heavy_check_mark:
 -   Automated/Manual Sync of SCIM users and local Keycloak users - :x:
 
 ####  Groups functionality
