@@ -189,9 +189,9 @@ public class Scim {
 		String server = model.getConfig().getFirst("scimurl");
 		String endpointurl;
 		if (endpoint.contains("domain")) {
-			endpointurl = String.format("http://%s/domains/v1/%s/", server, endpoint);
+			endpointurl = String.format("https://%s/domains/v1/%s/", server, endpoint);
 		} else {
-			endpointurl = String.format("http://%s/scim/v2/%s", server, endpoint);
+			endpointurl = String.format("https://%s/scim/v2/%s", server, endpoint);
 		}
 
 		logger.infov("Sending {0} request to {1}", method.toString(), endpointurl);
