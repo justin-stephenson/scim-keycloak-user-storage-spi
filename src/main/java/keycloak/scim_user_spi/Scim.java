@@ -169,8 +169,8 @@ public class Scim {
 
 		try {
 			response = clientRequest(domainurl, "DELETE", null);
-			result = response.asJson();
-			logger.infov("Result is {0}", result);
+			/* Returns HttpStatus.SC_NO_CONTENT (HTTP 204) */
+			logger.infov("Response status is {0}", response.getStatus());
 			return true;
 		} catch (Exception e) {
 			logger.errorv("Failed to remove existing integration domain: {0}", e.getMessage());
