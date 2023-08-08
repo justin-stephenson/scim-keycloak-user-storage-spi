@@ -60,10 +60,10 @@ import org.apache.http.HttpStatus;
  */
 public class SCIMUserStorageProvider implements
 UserStorageProvider,
-UserLookupProvider.Streams,
+UserLookupProvider,
 CredentialInputValidator,
 UserRegistrationProvider,
-UserQueryProvider.Streams,
+UserQueryProvider,
 ImportedUserValidation
 {
 	protected KeycloakSession session;
@@ -119,7 +119,7 @@ ImportedUserValidation
 		user.setEnabled(scim.getActive(scimuser));
 
 		for (String name : scim.getGroupsList(scimuser)) {
-			Stream<GroupModel> groupsStream = session.groups().searchForGroupByNameStream(realm, name, null, null);
+			Stream<GroupModel> groupsStream = session.groups().searchForGroupByNameStream(realm, name, false, null, null);
 			GroupModel group = groupsStream.findFirst().orElse(null);
 
 			if (group == null) {
@@ -313,11 +313,6 @@ ImportedUserValidation
 		}
 
 		return user.getTotalResults();
-	}
-
-	@Override
-	public Stream<UserModel> getUsersStream(RealmModel arg0, Integer arg1, Integer arg2) {
-		return Stream.empty();
 	}
 
 	@Override
