@@ -18,8 +18,8 @@
 package keycloak.scim_user_spi;
 
 import org.jboss.logging.Logger;
-import org.keycloak.Config;
 import org.keycloak.broker.provider.util.SimpleHttp;
+import org.keycloak.common.util.EnvUtil;
 import org.keycloak.component.ComponentModel;
 import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.RealmModel;
@@ -27,10 +27,15 @@ import org.keycloak.component.ComponentValidationException;
 import org.keycloak.storage.UserStorageProviderFactory;
 import org.keycloak.provider.ProviderConfigProperty;
 import org.keycloak.provider.ProviderConfigurationBuilder;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.util.Properties;
+import java.security.cert.CertificateEncodingException;
+import java.security.cert.CertificateException;
+import java.security.cert.CertificateFactory;
+import java.security.cert.X509Certificate;
 import java.util.LinkedList;
+import java.util.Base64;
 import java.util.List;
 
 /**
@@ -117,7 +122,8 @@ public class SCIMUserStorageProviderFactory implements UserStorageProviderFactor
 				.property().name("cacert")
 				.type(ProviderConfigProperty.STRING_TYPE)
 				.label("LDAP TLS CA Certificate")
-				.helpText("Path to CA Certificate used for LDAP authentication,"
+				.defaultValue("${jboss.server.config.dir}/ca.pem")
+				.helpText("File path to CA Certificate used for LDAP authentication,"
 						+ " e.g. /etc/openldap/certs/ca.pem")
 				.add()
 				.property().name("user_object_classes")
@@ -146,10 +152,51 @@ public class SCIMUserStorageProviderFactory implements UserStorageProviderFactor
 		return configMetadata;
 	}
 
+	private String checkCert(ComponentModel config) throws CertificateException, IOException {
+		/* Validate CA cert exists */
+		String fp = config.getConfig().getFirst("cacert");
+		if (fp == null) throw new ComponentValidationException("CA certificate file does not exist");
+		fp = EnvUtil.replace(fp);
+		File file = new File(fp);
+		if (!file.exists()) {
+			throw new ComponentValidationException("CA certificate file does not exist");
+		}
+
+		/* Read and parse cert */
+		String encodedCert = null;
+		logger.infov("Parsing cert {0}", fp);
+		CertificateFactory fact = CertificateFactory.getInstance("X.509");
+		FileInputStream is = new FileInputStream (fp);
+		X509Certificate cert = (X509Certificate) fact.generateCertificate(is);
+
+		try {
+			encodedCert = Base64.getEncoder().encodeToString(cert.getEncoded());
+		} catch (CertificateEncodingException e) {
+			throw new ComponentValidationException("CertificateEncoding error");
+		}
+
+		is.close();
+
+		return encodedCert;
+	}
+
 	@Override
 	public void validateConfiguration(KeycloakSession session, RealmModel realm, ComponentModel config)
 			throws ComponentValidationException {
 		Scim scim = new Scim(config);
+
+		String tlsCert = null;
+		try {
+			tlsCert = checkCert(config);
+		} catch (CertificateException e1) {
+			logger.infov("CertificateException");
+			e1.printStackTrace();
+			return;
+		} catch (IOException e1) {
+			logger.infov("IOException");
+			e1.printStackTrace();
+			return;
+		}
 
 		SimpleHttp.Response response;
 
@@ -169,7 +216,7 @@ public class SCIMUserStorageProviderFactory implements UserStorageProviderFactor
 			logger.infov("Delete intgDomains Result is {0}", result);
 		}
 		if (add_set) {
-			Boolean result = scim.domainsRequest();
+			Boolean result = scim.domainsRequest(tlsCert);
 			logger.infov("Add intgDomains Result is {0}", result);
 		}
 	}
