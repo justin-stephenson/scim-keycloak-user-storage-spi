@@ -23,7 +23,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
       "id_provider": "ipa",
       "user_extra_attrs": "mail:mail, sn:sn, givenname:givenname",
       "ldap_tls_cacert": "/path/to/ca.pem",
-      "user_object_classes": ["inetOrgPerson", "organizationalPerson", "top"],
+      "user_object_classes": "inetOrgPerson, organizationalPerson, top",
       "users_dn": "ou=users,dc=ipa,dc=test"
     }
  */
@@ -61,7 +61,7 @@ public class IntegrationDomain {
 	@JsonProperty("ldap_tls_cacert")
 	private String ldapTlsCacert;
 	@JsonProperty("user_object_classes")
-	private List<String> userObjectClasses;
+	private String userObjectClasses;
 	@JsonProperty("users_dn")
 	private String usersDn;
 	@JsonIgnore
@@ -148,12 +148,12 @@ public class IntegrationDomain {
 	}
 
 	@JsonProperty("user_object_classes")
-	public List<String> getUserObjectClasses() {
+	public String getUserObjectClasses() {
 		return userObjectClasses;
 	}
 
 	@JsonProperty("user_object_classes")
-	public void setUserObjectClasses(List<String> userObjectClasses) {
+	public void setUserObjectClasses(String userObjectClasses) {
 		this.userObjectClasses = userObjectClasses;
 	}
 

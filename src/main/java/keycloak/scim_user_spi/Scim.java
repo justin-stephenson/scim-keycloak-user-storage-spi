@@ -262,8 +262,7 @@ public class Scim {
 			intgdomain.setUserExtraAttrs(extra);
 		}
 		if (oc != null && !oc.isEmpty()) {
-			List<String> oclist = Arrays.asList(oc.split("\\s*,\\s*"));
-			intgdomain.setUserObjectClasses(oclist);
+			intgdomain.setUserObjectClasses(oc);
 		}
 
 		return intgdomain;
