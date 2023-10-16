@@ -6,16 +6,12 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+
 import org.apache.http.client.CookieStore;
-import org.apache.http.client.config.CookieSpecs;
-import org.apache.http.client.config.RequestConfig;
 import org.apache.http.cookie.Cookie;
-import org.apache.http.impl.client.BasicCookieStore;
 import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
 import org.keycloak.component.ComponentModel;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 
 import org.keycloak.broker.provider.util.SimpleHttp;
 
@@ -27,37 +23,26 @@ import keycloak.scim_user_spi.schemas.IntegrationDomain;
 public class Scim {
 	private static final Logger logger = Logger.getLogger(Scim.class);
 
-	private ComponentModel model;
+	private final ComponentModel model;
 	public static final String SCHEMA_CORE_USER = "urn:ietf:params:scim:schemas:core:2.0:User";
 	public static final String SCHEMA_API_MESSAGES_SEARCHREQUEST = "urn:ietf:params:scim:api:messages:2.0:SearchRequest";
 
-	String session_id;
-	String username;
-	String password;
 	Cookie csrf_cookie;
-	CloseableHttpClient httpclient;
 	Boolean logged_in = false;
 
-	public Scim(ComponentModel model) {
+	private final CloseableHttpClient httpclient;
+	private final CookieStore cookieStore;
+
+	public Scim(ComponentModel model, CloseableHttpClient httpclient, CookieStore cookieStore) {
 		this.model = model;
+		this.httpclient = httpclient;
+		this.cookieStore = cookieStore;
 	}
 
 	public Integer csrfAuthLogin() {
 		String url = "";
 		String loginPage = "";
 		SimpleHttp.Response response = null;
-
-		/* Create cookie store */
-		CookieStore cookieStore = new BasicCookieStore();
-
-		/* Create client */
-		CloseableHttpClient httpclient = HttpClients.custom()
-				.setDefaultCookieStore(cookieStore)
-				.setDefaultRequestConfig(RequestConfig.custom()
-						.setRedirectsEnabled(false)
-						.setCookieSpec(CookieSpecs.STANDARD)
-						.build()).build();
-		this.httpclient = httpclient;
 
 		/* Get inputs */
 		String server = model.getConfig().getFirst("scimurl");
@@ -402,11 +387,9 @@ public class Scim {
 		}
 	}
 
-	public SimpleHttp.Response updateUser(String username, String attr, List<String> values) {
+	public SimpleHttp.Response updateUser(Scim scim, String username, String attr, List<String> values) {
 		logger.info(String.format("Updating %s attribute for %s", attr, username));
 		/* Get existing user */
-		Scim scim = new Scim(model);
-
 		if (scim.csrfAuthLogin() == null) {
 			logger.error("Error during login");
 		}

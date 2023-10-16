@@ -104,7 +104,6 @@ ImportedUserValidation
 	}
 
 	protected UserModel createUserInKeycloak(RealmModel realm, String username) {
-		Scim scim = this.scim;
 		((LegacyDatastoreProvider) session.getProvider(DatastoreProvider.class)).groupStorageManager().getGroupsCountByNameContaining(realm, username);
 
 		SCIMUser scimuser = scim.getUserByUsername(username);
@@ -130,7 +129,7 @@ ImportedUserValidation
 		}
 
 		logger.infov("Creating SCIM user {0} in keycloak", username);
-		return new SCIMUserModelDelegate(user, model);
+		return new SCIMUserModelDelegate(scim, user, model);
 	}
 
 	@Override
@@ -191,7 +190,7 @@ ImportedUserValidation
 			local.setEmail(email);
 		}
 
-		return new SCIMUserModelDelegate(local, model);
+		return new SCIMUserModelDelegate(this.scim, local, model);
 	}
 
 	// UserRegistrationProvider methods

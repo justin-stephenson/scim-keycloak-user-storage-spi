@@ -49,11 +49,6 @@
 		</dependency>
 		<dependency>
 			<groupId>org.keycloak</groupId>
-			<artifactId>keycloak-connections-http-client</artifactId>
-			<version>1.8.1.Final</version>
-		</dependency>
-		<dependency>
-			<groupId>org.keycloak</groupId>
 			<artifactId>keycloak-server-spi-private</artifactId>
 			<version>${keycloak.version}</version>
 			<scope>provided</scope>
