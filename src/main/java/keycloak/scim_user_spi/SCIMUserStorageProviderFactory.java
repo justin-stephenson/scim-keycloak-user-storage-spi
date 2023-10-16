@@ -18,7 +18,6 @@
 package keycloak.scim_user_spi;
 
 import org.jboss.logging.Logger;
-import org.keycloak.Config;
 import org.keycloak.broker.provider.util.SimpleHttp;
 import org.keycloak.component.ComponentModel;
 import org.keycloak.models.KeycloakSession;
@@ -27,11 +26,14 @@ import org.keycloak.component.ComponentValidationException;
 import org.keycloak.storage.UserStorageProviderFactory;
 import org.keycloak.provider.ProviderConfigProperty;
 import org.keycloak.provider.ProviderConfigurationBuilder;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Properties;
+
 import java.util.LinkedList;
 import java.util.List;
+
+import org.apache.http.impl.client.BasicCookieStore;
+import org.apache.http.impl.client.CloseableHttpClient;
+
+import keycloak.scim_user_spi.cloned.ScimHttpClientBuilder;
 
 /**
  * @author <a href="mailto:jstephen@redhat.com">Justin Stephenson</a>
@@ -43,6 +45,8 @@ public class SCIMUserStorageProviderFactory implements UserStorageProviderFactor
 	public static final String PROVIDER_NAME = "scim";
 	protected static final List<String> PROVIDERS = new LinkedList<>();
 	protected static final List<ProviderConfigProperty> configMetadata;
+    private BasicCookieStore cookieStore;
+	private CloseableHttpClient httpClient;
 
 	static {
 		PROVIDERS.add("ipa");
@@ -149,7 +153,8 @@ public class SCIMUserStorageProviderFactory implements UserStorageProviderFactor
 	@Override
 	public void validateConfiguration(KeycloakSession session, RealmModel realm, ComponentModel config)
 			throws ComponentValidationException {
-		Scim scim = new Scim(config);
+		lazyInit(session);
+		Scim scim = new Scim(config, this.httpClient, this.cookieStore);
 
 		SimpleHttp.Response response;
 
@@ -181,7 +186,19 @@ public class SCIMUserStorageProviderFactory implements UserStorageProviderFactor
 
 	@Override
 	public SCIMUserStorageProvider create(KeycloakSession session, ComponentModel model) {
-		Scim scim = new Scim(model);
+		lazyInit(session);
+		Scim scim = new Scim(model, this.httpClient, this.cookieStore);
 		return new SCIMUserStorageProvider(session, model, scim);
 	}
+
+    private void lazyInit(KeycloakSession session) {
+        if (this.httpClient == null) {
+            synchronized(this) {
+                if (this.httpClient == null) {
+					this.cookieStore = new BasicCookieStore();
+                    this.httpClient = ScimHttpClientBuilder.createHttpClient(session, cookieStore);
+                }
+            }
+        }
+    }
 }

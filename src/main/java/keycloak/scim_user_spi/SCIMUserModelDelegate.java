@@ -17,17 +17,19 @@ public class SCIMUserModelDelegate extends UserModelDelegate {
 
 	private ComponentModel model;
 
-	public SCIMUserModelDelegate(UserModel delegate, ComponentModel model) {
+	private final Scim scim;
+
+	public SCIMUserModelDelegate(Scim scim, UserModel delegate, ComponentModel model) {
 		super(delegate);
 		this.model = model;
+		this.scim = scim;
 	}
 
 	@Override
 	public void setAttribute(String attr, List<String> values) {
-		Scim scim = new Scim(model);
 		HttpStatus httpStatus;
 
-		SimpleHttp.Response resp = scim.updateUser(this.getUsername(), attr, values);
+		SimpleHttp.Response resp = this.scim.updateUser(scim, this.getUsername(), attr, values);
 		try {
 			if (resp.getStatus() != HttpStatus.SC_OK &&
 					resp.getStatus() != HttpStatus.SC_NO_CONTENT) {
