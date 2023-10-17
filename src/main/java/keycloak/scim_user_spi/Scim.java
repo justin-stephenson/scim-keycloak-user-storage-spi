@@ -53,7 +53,7 @@ public class Scim {
 		String password = model.getConfig().getFirst("loginpassword");
 
 		/* Get Location redirect url */
-		url = String.format("http://%s%s", server, "/admin/");
+		url = String.format("https://%s%s", server, "/admin/");
 
 		try {
 			response = SimpleHttp.doGet(url, this.httpclient).asResponse();
@@ -66,7 +66,7 @@ public class Scim {
 		}
 
 		/* Execute GET to get initial csrftoken */
-		url = String.format("http://%s%s", server, loginPage);
+		url = String.format("https://%s%s", server, loginPage);
 
 		try {
 			response = SimpleHttp.doGet(url, this.httpclient).asResponse();
@@ -115,7 +115,7 @@ public class Scim {
 		/* Build URL */
 
 		String server = model.getConfig().getFirst("scimurl");
-		String endpointurl = String.format("http://%s/creds/simple_pwd", server);
+		String endpointurl = String.format("https://%s/creds/simple_pwd", server);
 
 		logger.infov("Sending POST request to {0}", endpointurl);
 		try {
@@ -177,9 +177,9 @@ public class Scim {
 		String server = model.getConfig().getFirst("scimurl");
 		String endpointurl;
 		if (endpoint.contains("domain")) {
-			endpointurl = String.format("http://%s/domains/v1/%s/", server, endpoint);
+			endpointurl = String.format("https://%s/domains/v1/%s/", server, endpoint);
 		} else {
-			endpointurl = String.format("http://%s/scim/v2/%s", server, endpoint);
+			endpointurl = String.format("https://%s/scim/v2/%s", server, endpoint);
 		}
 
 		logger.infov("Sending {0} request to {1}", method.toString(), endpointurl);
