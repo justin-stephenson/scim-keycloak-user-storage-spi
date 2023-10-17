@@ -27,12 +27,12 @@
 		<dependency>
 			<groupId>org.keycloak</groupId>
 			<artifactId>keycloak-core</artifactId>
-			<version>19.0.0</version>
+			<version>19.0.3</version>
 		</dependency>
 		<dependency>
 			<groupId>org.keycloak</groupId>
 			<artifactId>keycloak-server-spi</artifactId>
-			<version>19.0.0</version>
+			<version>19.0.3</version>
 			<scope>provided</scope>
 		</dependency>
 		<dependency>
@@ -53,23 +53,23 @@
 		<dependency>
 			<groupId>org.keycloak</groupId>
 			<artifactId>keycloak-server-spi-private</artifactId>
-			<version>19.0.0</version>
+			<version>19.0.3</version>
 			<scope>provided</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.keycloak</groupId>
 			<artifactId>keycloak-model-legacy</artifactId>
-			<version>19.0.0</version>
+			<version>19.0.3</version>
 		</dependency>
 		<dependency>
 			<groupId>org.keycloak</groupId>
 			<artifactId>keycloak-model-legacy-private</artifactId>
-			<version>19.0.0</version>
+			<version>19.0.3</version>
 		</dependency>
 		<dependency>
 			<groupId>org.keycloak</groupId>
 			<artifactId>keycloak-model-legacy-services</artifactId>
-			<version>19.0.0</version>
+			<version>19.0.3</version>
 		</dependency>
 	</dependencies>
 </project>
