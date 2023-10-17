@@ -44,6 +44,9 @@ public class Scim {
 		String loginPage = "";
 		SimpleHttp.Response response = null;
 
+		/* Clear existing cookies */
+		cookieStore.clear();
+
 		/* Get inputs */
 		String server = model.getConfig().getFirst("scimurl");
 		String username = model.getConfig().getFirst("loginusername");
