@@ -92,9 +92,9 @@ public class Scim {
 		try {
 			/* Here we retrieve the Response sessionid and csrftoken cookie */
 			response = SimpleHttp.doPost(url, this.httpclient)
-								 .header("X-CSRFToken", this.csrf_cookie.getValue())
-								 .header("referer", url)
-								 .param("username",  username).param("password",  password).asResponse();
+					.header("X-CSRFToken", this.csrf_cookie.getValue())
+					.header("referer", url)
+					.param("username",  username).param("password",  password).asResponse();
 			response.close();
 		} catch (Exception e) {
 			logger.error("Error: " + e.getMessage());
@@ -122,7 +122,11 @@ public class Scim {
 
 		logger.infov("Sending POST request to {0}", endpointurl);
 		try {
-			response = SimpleHttp.doPost(endpointurl, this.httpclient).header("X-CSRFToken", this.csrf_cookie.getValue()).param("username",  username).param("password",  password).asResponse();
+			response = SimpleHttp.doPost(endpointurl, this.httpclient)
+					.header("X-CSRFToken", this.csrf_cookie.getValue())
+					.header("referer", endpointurl)
+					.param("username",  username)
+					.param("password",  password).asResponse();
 			result = response.asJson();
 			return (result.get("result").get("validated").asBoolean());
 		} catch (Exception e) {
@@ -194,21 +198,21 @@ public class Scim {
 				break;
 			case "DELETE":
 				response = SimpleHttp.doDelete(endpointurl, this.httpclient)
-									 .header("X-CSRFToken", this.csrf_cookie.getValue())
-									 .header("referer", endpointurl)
-									 .asResponse();
+				.header("X-CSRFToken", this.csrf_cookie.getValue())
+				.header("referer", endpointurl)
+				.asResponse();
 				break;
 			case "POST":
 				/* Header is needed for domains endpoint only, but use it here anyway */
 				response = SimpleHttp.doPost(endpointurl, this.httpclient)
-									 .header("X-CSRFToken", this.csrf_cookie.getValue())
-									 .header("referer", endpointurl)
-									 .json(entity).asResponse();
+				.header("X-CSRFToken", this.csrf_cookie.getValue())
+				.header("referer", endpointurl)
+				.json(entity).asResponse();
 				break;
 			case "PUT":
 				response = SimpleHttp.doPut(endpointurl, this.httpclient)
-									  .header("X-CSRFToken", this.csrf_cookie.getValue())
-									  .json(entity).asResponse();
+				.header("X-CSRFToken", this.csrf_cookie.getValue())
+				.json(entity).asResponse();
 				break;
 			default:
 				logger.warn("Unknown HTTP method, skipping");
