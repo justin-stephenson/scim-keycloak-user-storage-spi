@@ -248,6 +248,7 @@ public class Scim {
 		intgdomain.setClientSecret(model.getConfig().getFirst("domainclientsecret"));
 		intgdomain.setIdProvider(model.getConfig().getFirst("idprovider"));
 		intgdomain.setUsersDn(model.getConfig().getFirst("users_dn"));
+		intgdomain.setkeycloakHostname(model.getConfig().getFirst("keycloak_hostname"));
 
 		/* Optional fields */
 		String cacert = model.getConfig().getFirst("cacert");

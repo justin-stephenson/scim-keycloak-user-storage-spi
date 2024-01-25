@@ -136,6 +136,11 @@ public class SCIMUserStorageProviderFactory implements UserStorageProviderFactor
 				.helpText("OPTIONAL. Full DN of the LDAP tree where your users are,"
 						+ " e.g. cn=users,dc=ipa,dc=test")
 				.add()
+				.property().name("keycloak_hostname")
+				.type(ProviderConfigProperty.STRING_TYPE)
+				.label("Keycloak Hostname")
+				.helpText("Fully qualified hostname of the keycloak host")
+				.add()
 				.build();
 	}
 
