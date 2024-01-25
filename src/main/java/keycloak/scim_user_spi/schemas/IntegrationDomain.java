@@ -24,7 +24,8 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
       "user_extra_attrs": "mail:mail, sn:sn, givenname:givenname",
       "ldap_tls_cacert": "/path/to/ca.pem",
       "user_object_classes": ["inetOrgPerson", "organizationalPerson", "top"],
-      "users_dn": "ou=users,dc=ipa,dc=test"
+      "users_dn": "ou=users,dc=ipa,dc=test",
+      "keycloak_hostname": "keycloak.ipa.test"
     }
  */
 
@@ -39,7 +40,8 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 	"user_extra_attrs",
 	"ldap_tls_cacert",
 	"user_object_classes",
-	"users_dn"
+	"users_dn",
+	"keycloak_hostname"
 })
 @Generated("jsonschema2pojo")
 public class IntegrationDomain {
@@ -62,6 +64,8 @@ public class IntegrationDomain {
 	private String ldapTlsCacert;
 	@JsonProperty("user_object_classes")
 	private List<String> userObjectClasses;
+	@JsonProperty("keycloak_hostname")
+	private String keycloakHostname;
 	@JsonProperty("users_dn")
 	private String usersDn;
 	@JsonIgnore
@@ -167,6 +171,15 @@ public class IntegrationDomain {
 		this.usersDn = usersDn;
 	}
 
+	@JsonProperty("keycloak_hostname")
+	public String getkeycloakHostname() {
+		return keycloakHostname;
+	}
+
+	@JsonProperty("keycloak_hostname")
+	public void setkeycloakHostname(String keycloakHostname) {
+		this.keycloakHostname = keycloakHostname;
+	}
 	@JsonAnyGetter
 	public Map<String, Object> getAdditionalProperties() {
 		return this.additionalProperties;
