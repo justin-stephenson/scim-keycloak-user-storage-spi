@@ -154,6 +154,8 @@ ImportedUserValidation
 
 	@Override
 	public boolean isValid(RealmModel realm, UserModel user, CredentialInput input) {
+		logger.info("isValid");
+		//  session.getContext().getHttpRequest().getHttpHeaders();
 		if (!supportsCredentialType(input.getType()) || !(input instanceof UserCredentialModel)) return false;
 
 		UserCredentialModel cred = (UserCredentialModel)input;
