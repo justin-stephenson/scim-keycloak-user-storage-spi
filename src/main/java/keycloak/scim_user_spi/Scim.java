@@ -122,7 +122,7 @@ public class Scim {
 
 		logger.infov("Sending POST request to {0}", endpointurl);
 		try {
-			response = SimpleHttp.doPost(endpointurl, this.httpclient).header("X-CSRFToken", this.csrf_cookie.getValue()).param("username",  username).param("password",  password).asResponse();
+			response = SimpleHttp.doPost(endpointurl, this.httpclient).header("X-CSRFToken", this.csrf_cookie.getValue()).header("referer", endpointurl).param("username",  username).param("password",  password).asResponse();
 			result = response.asJson();
 			return (result.get("result").get("validated").asBoolean());
 		} catch (Exception e) {
