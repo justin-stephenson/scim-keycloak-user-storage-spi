@@ -160,11 +160,11 @@ ImportedUserValidation
 		/* The password can either be validated locally in keycloak (tried first)
 		   or in the SCIM server */
 		if (((LegacyUserCredentialManager) user.credentialManager()).isConfiguredLocally(input.getType())) {
-			logger.debugv("Local password validation for {0}", user.getUsername());
+			logger.infov("Local password validation for {0}", user.getUsername());
 			// return false in order to fallback to the next validator
 			return false;
 		} else {
-			logger.debugv("Delegated password validation for {0}", user.getUsername());
+			logger.infov("Delegated password validation for {0}", user.getUsername());
 			Scim scim = this.scim;
 			return scim.isValid(user.getUsername(), input.getChallengeResponse());
 		}

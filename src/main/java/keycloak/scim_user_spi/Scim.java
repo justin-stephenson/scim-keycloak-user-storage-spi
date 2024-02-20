@@ -126,7 +126,7 @@ public class Scim {
 			result = response.asJson();
 			return (result.get("result").get("validated").asBoolean());
 		} catch (Exception e) {
-			logger.debugv("Failed to authenticate user {0}: {1}", username, e);
+			logger.infov("Failed to authenticate user {0}: {1}", username, e);
 			return false;
 		}
 
