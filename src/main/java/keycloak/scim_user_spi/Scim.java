@@ -132,6 +132,25 @@ public class Scim {
 
 	}
 
+	public String gssAuth(String spnegoToken) {
+		SimpleHttp.Response response = null;
+		com.fasterxml.jackson.databind.JsonNode result;
+
+		String server = model.getConfig().getFirst("scimurl");
+		String endpointurl = String.format("https://%s/bridge/login_kerberos/", server);
+
+		logger.infov("Sending POST request to {0}", endpointurl);
+		try {
+			response = SimpleHttp.doPost(endpointurl, this.httpclient).header("Authorization", "Negotiate " + spnegoToken).param("username", "").asResponse();
+			result = response.asJson();
+			logger.infov("Response status is {0}", response.getStatus());
+			String user = response.getFirstHeader("Remote-User");
+			return user;
+		} catch (Exception e) {
+			logger.infov("Failed to authenticate user with GSSAPI: {0}", e.toString());
+			return null;
+		}
+	}
 	public boolean domainsRequest() {
 		IntegrationDomain intgdomain = this.setupIntegrationDomain();
 
