@@ -20,10 +20,11 @@ package keycloak.scim_user_spi;
 import org.jboss.logging.Logger;
 
 import org.keycloak.component.ComponentModel;
+import org.keycloak.credential.CredentialAuthentication;
 import org.keycloak.credential.CredentialInput;
 import org.keycloak.credential.CredentialInputValidator;
-import org.keycloak.credential.CredentialModel;
 import org.keycloak.credential.LegacyUserCredentialManager;
+import org.keycloak.models.CredentialValidationOutput;
 import org.keycloak.models.GroupModel;
 import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.RealmModel;
@@ -39,12 +40,14 @@ import org.keycloak.storage.user.UserLookupProvider;
 import org.keycloak.storage.user.UserRegistrationProvider;
 import org.keycloak.broker.provider.util.SimpleHttp;
 
+import keycloak.scim_user_spi.authenticator.SCIMAuthenticator;
 import keycloak.scim_user_spi.schemas.SCIMError;
 import keycloak.scim_user_spi.schemas.SCIMUser;
 
 import org.keycloak.storage.user.UserQueryProvider;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -62,6 +65,7 @@ public class SCIMUserStorageProvider implements
 UserStorageProvider,
 UserLookupProvider,
 CredentialInputValidator,
+CredentialAuthentication,
 UserRegistrationProvider,
 UserQueryProvider,
 ImportedUserValidation
@@ -71,11 +75,13 @@ ImportedUserValidation
 	protected Scim scim;
 	private static final Logger logger = Logger.getLogger(SCIMUserStorageProvider.class);
 	protected final Set<String> supportedCredentialTypes = new HashSet<>();
+	protected SCIMUserStorageProviderFactory factory;
 
-	public SCIMUserStorageProvider(KeycloakSession session, ComponentModel model, Scim scim) {
+	public SCIMUserStorageProvider(KeycloakSession session, ComponentModel model, Scim scim, SCIMUserStorageProviderFactory factory) {
 		this.session = session;
 		this.model = model;
 		this.scim = scim;
+		this.factory = factory;
 
 		supportedCredentialTypes.add(PasswordCredentialModel.TYPE);
 	}
@@ -333,4 +339,35 @@ ImportedUserValidation
 		return searchForUserStream(realm, usernameSearchString, firstResult, maxResults);
 	}
 
+	@Override
+	public boolean supportsCredentialAuthenticationFor(String type) {
+		return UserCredentialModel.KERBEROS.equals(type);
+	}
+
+	@Override
+	public CredentialValidationOutput authenticate(RealmModel realm, CredentialInput input) {
+		Map<String, String> state = new HashMap<>();
+		String username = null;
+		SCIMAuthenticator scimAuthenticator = factory.createSCIMAuthenticator();
+
+		String token = scimAuthenticator.getToken(session);
+		if (token != null) {
+			username = scim.gssAuth(token);
+
+			/* Remove realm */
+			int idx = username.indexOf("@");
+			if (idx != -1) {
+				username = username.substring(0 , idx);
+			}
+			logger.info("GSSAPI authenticating with user " + username);
+		}
+
+        UserModel user = getUserByUsername(realm, username);
+		if (user == null) {
+			logger.info("CredentialValidationOutput failed");
+			return CredentialValidationOutput.failed();
+		}
+		logger.info("CredentialValidationOutput success!");
+		return new CredentialValidationOutput(user, CredentialValidationOutput.Status.AUTHENTICATED, state);
+	}
 }

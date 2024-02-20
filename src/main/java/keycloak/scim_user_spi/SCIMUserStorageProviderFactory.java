@@ -26,6 +26,7 @@ import org.keycloak.component.ComponentValidationException;
 import org.keycloak.storage.UserStorageProviderFactory;
 import org.keycloak.provider.ProviderConfigProperty;
 import org.keycloak.provider.ProviderConfigurationBuilder;
+import keycloak.scim_user_spi.authenticator.SCIMAuthenticator;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -191,7 +192,11 @@ public class SCIMUserStorageProviderFactory implements UserStorageProviderFactor
 	public SCIMUserStorageProvider create(KeycloakSession session, ComponentModel model) {
 		lazyInit(session);
 		Scim scim = new Scim(model, this.httpClient, this.cookieStore);
-		return new SCIMUserStorageProvider(session, model, scim);
+		return new SCIMUserStorageProvider(session, model, scim, this);
+	}
+
+	protected SCIMAuthenticator createSCIMAuthenticator() {
+		return new SCIMAuthenticator();
 	}
 
     private void lazyInit(KeycloakSession session) {
