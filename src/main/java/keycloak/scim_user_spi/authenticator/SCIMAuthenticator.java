@@ -17,7 +17,7 @@
 
 package keycloak.scim_user_spi.authenticator;
 
-import javax.ws.rs.core.HttpHeaders;
+import jakarta.ws.rs.core.HttpHeaders;
 
 import org.jboss.logging.Logger;
 import org.keycloak.common.constants.KerberosConstants;

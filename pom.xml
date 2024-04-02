@@ -12,11 +12,7 @@
 	<name>scim-user-spi</name>
 
 	<properties>
-		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<maven.compiler.source>1.8</maven.compiler.source>
-		<maven.compiler.target>1.8</maven.compiler.target>
-
-		<keycloak.version>21.1.2</keycloak.version>
+		<keycloak.version>24.0.2</keycloak.version>
 	</properties>
 
 	<dependencies>
@@ -55,17 +51,17 @@
 		</dependency>
 		<dependency>
 			<groupId>org.keycloak</groupId>
-			<artifactId>keycloak-model-legacy</artifactId>
+			<artifactId>keycloak-model-storage</artifactId>
 			<version>${keycloak.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.keycloak</groupId>
-			<artifactId>keycloak-model-legacy-private</artifactId>
+			<artifactId>keycloak-model-storage-private</artifactId>
 			<version>${keycloak.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.keycloak</groupId>
-			<artifactId>keycloak-model-legacy-services</artifactId>
+			<artifactId>keycloak-model-storage-services</artifactId>
 			<version>${keycloak.version}</version>
 		</dependency>
 	</dependencies>
