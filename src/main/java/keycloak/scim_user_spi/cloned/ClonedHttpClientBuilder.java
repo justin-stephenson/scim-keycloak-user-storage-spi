@@ -10,6 +10,7 @@ import org.apache.http.conn.ssl.X509HostnameVerifier;
 import org.apache.http.impl.NoConnectionReuseStrategy;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
+import org.keycloak.common.enums.HostnameVerificationPolicy;
 
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLContext;
@@ -43,35 +44,23 @@ import org.keycloak.connections.httpclient.ProxyMappingsAwareRoutePlanner;
  */
 class ClonedHttpClientBuilder {
 
-    public enum HostnameVerificationPolicy {
-        /**
-         * Hostname verification is not done on the server's certificate
-         */
-        ANY,
-        /**
-         * Allows wildcards in subdomain names i.e. *.foo.com
-         */
-        WILDCARD,
-        /**
-         * CN must match hostname connecting to
-         */
-        STRICT
-    }
-
 
     /**
      * @author <a href="mailto:bill@burkecentral.com">Bill Burke</a>
      * @version $Revision: 1 $
      */
     private static class PassthroughTrustManager implements X509TrustManager {
+        @Override
         public void checkClientTrusted(X509Certificate[] chain,
                                        String authType) throws CertificateException {
         }
 
+        @Override
         public void checkServerTrusted(X509Certificate[] chain,
                                        String authType) throws CertificateException {
         }
 
+        @Override
         public X509Certificate[] getAcceptedIssuers() {
             return null;
         }
