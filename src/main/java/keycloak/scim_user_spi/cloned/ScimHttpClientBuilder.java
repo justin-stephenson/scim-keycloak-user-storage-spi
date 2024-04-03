@@ -115,7 +115,7 @@ public class ScimHttpClientBuilder {
         if (disableTruststoreProvider) {
             logger.warn("TruststoreProvider is disabled");
         } else {
-            builder.hostnameVerification(ClonedHttpClientBuilder.HostnameVerificationPolicy.valueOf(truststoreProvider.getPolicy().name()));
+            builder.hostnameVerification(truststoreProvider.getPolicy());
             try {
                 builder.trustStore(truststoreProvider.getTruststore());
             } catch (Exception e) {
