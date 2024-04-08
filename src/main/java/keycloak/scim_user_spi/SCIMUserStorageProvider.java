@@ -29,11 +29,13 @@ import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.RealmModel;
 import org.keycloak.models.UserCredentialModel;
 import org.keycloak.models.UserModel;
+import org.keycloak.models.UserManager;
 import org.keycloak.models.credential.PasswordCredentialModel;
 import org.keycloak.storage.DatastoreProvider;
 import org.keycloak.storage.StorageId;
 import org.keycloak.storage.UserStorageProvider;
 import org.keycloak.storage.datastore.LegacyDatastoreProvider;
+import org.keycloak.storage.UserStoragePrivateUtil;
 import org.keycloak.storage.user.ImportedUserValidation;
 import org.keycloak.storage.user.UserLookupProvider;
 import org.keycloak.storage.user.UserRegistrationProvider;
@@ -231,6 +233,9 @@ ImportedUserValidation
 			logger.errorv("Error: {0}", e.getMessage());
 			throw new RuntimeException(e);
 		}
+
+		new UserManager(session).removeUser(realm, user, UserStoragePrivateUtil.userLocalStorage(session));
+
 		return status;
 	}
 
