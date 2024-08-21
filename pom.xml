@@ -12,7 +12,7 @@
 	<name>scim-user-spi</name>
 
 	<properties>
-		<keycloak.version>24.0.2</keycloak.version>
+		<keycloak.version>25.0.4</keycloak.version>
 	</properties>
 
 	<dependencies>
