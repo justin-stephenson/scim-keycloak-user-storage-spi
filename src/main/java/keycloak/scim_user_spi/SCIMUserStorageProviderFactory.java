@@ -154,7 +154,7 @@ public class SCIMUserStorageProviderFactory implements UserStorageProviderFactor
 	public void validateConfiguration(KeycloakSession session, RealmModel realm, ComponentModel config)
 			throws ComponentValidationException {
 		lazyInit(session);
-		Scim scim = new Scim(config, this.httpClient, this.cookieStore);
+		Scim scim = new Scim(session, config, this.httpClient, this.cookieStore);
 
 		SimpleHttp.Response response;
 
@@ -182,7 +182,7 @@ public class SCIMUserStorageProviderFactory implements UserStorageProviderFactor
 	@Override
 	public void preRemove(KeycloakSession session, RealmModel realm, ComponentModel config) {
 		logger.info("PreRemove");
-		Scim scim = new Scim(config, this.httpClient, this.cookieStore);
+		Scim scim = new Scim(session, config, this.httpClient, this.cookieStore);
 
 		Boolean result = scim.domainsRemove();
 		logger.infov("Delete intgDomains Result is {0}", result);
@@ -191,7 +191,7 @@ public class SCIMUserStorageProviderFactory implements UserStorageProviderFactor
 	@Override
 	public SCIMUserStorageProvider create(KeycloakSession session, ComponentModel model) {
 		lazyInit(session);
-		Scim scim = new Scim(model, this.httpClient, this.cookieStore);
+		Scim scim = new Scim(session, model, this.httpClient, this.cookieStore);
 		return new SCIMUserStorageProvider(session, model, scim, this);
 	}
 

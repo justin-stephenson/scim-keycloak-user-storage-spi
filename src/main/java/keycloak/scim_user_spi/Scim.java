@@ -11,8 +11,7 @@ import org.apache.http.client.CookieStore;
 import org.apache.http.cookie.Cookie;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.keycloak.component.ComponentModel;
-
-
+import org.keycloak.models.KeycloakSession;
 import org.keycloak.broker.provider.util.SimpleHttp;
 
 import keycloak.scim_user_spi.schemas.SCIMSearchRequest;
@@ -32,11 +31,13 @@ public class Scim {
 
 	private final CloseableHttpClient httpclient;
 	private final CookieStore cookieStore;
+	private final KeycloakSession session;
 
-	public Scim(ComponentModel model, CloseableHttpClient httpclient, CookieStore cookieStore) {
+	public Scim(KeycloakSession session, ComponentModel model, CloseableHttpClient httpclient, CookieStore cookieStore) {
 		this.model = model;
 		this.httpclient = httpclient;
 		this.cookieStore = cookieStore;
+		this.session = session;
 	}
 
 	public Integer csrfAuthLogin() {
@@ -56,7 +57,7 @@ public class Scim {
 		url = String.format("https://%s%s", server, "/admin/");
 
 		try {
-			response = SimpleHttp.doGet(url, this.httpclient).asResponse();
+			response = SimpleHttp.doGet(url, session).asResponse();
 
 			loginPage = response.getFirstHeader("Location");
 			response.close();
@@ -69,7 +70,7 @@ public class Scim {
 		url = String.format("https://%s%s", server, loginPage);
 
 		try {
-			response = SimpleHttp.doGet(url, this.httpclient).asResponse();
+			response = SimpleHttp.doGet(url, session).asResponse();
 			response.close();
 		} catch (Exception e) {
 			logger.errorv("Error: {0}", e.getMessage());
@@ -91,7 +92,7 @@ public class Scim {
 
 		try {
 			/* Here we retrieve the Response sessionid and csrftoken cookie */
-			response = SimpleHttp.doPost(url, this.httpclient)
+			response = SimpleHttp.doPost(url, session)
 								 .header("X-CSRFToken", this.csrf_cookie.getValue())
 								 .header("referer", url)
 								 .param("username",  username).param("password",  password).asResponse();
@@ -122,7 +123,7 @@ public class Scim {
 
 		logger.infov("Sending POST request to {0}", endpointurl);
 		try {
-			response = SimpleHttp.doPost(endpointurl, this.httpclient).header("X-CSRFToken", this.csrf_cookie.getValue()).header("referer", endpointurl).param("username",  username).param("password",  password).asResponse();
+			response = SimpleHttp.doPost(endpointurl, session).header("X-CSRFToken", this.csrf_cookie.getValue()).header("referer", endpointurl).param("username",  username).param("password",  password).asResponse();
 			result = response.asJson();
 			return (result.get("result").get("validated").asBoolean());
 		} catch (Exception e) {
@@ -141,7 +142,7 @@ public class Scim {
 
 		logger.infov("Sending POST request to {0}", endpointurl);
 		try {
-			response = SimpleHttp.doPost(endpointurl, this.httpclient).header("Authorization", "Negotiate " + spnegoToken).param("username", "").asResponse();
+			response = SimpleHttp.doPost(endpointurl, session).header("Authorization", "Negotiate " + spnegoToken).param("username", "").asResponse();
 			result = response.asJson();
 			logger.infov("Response status is {0}", response.getStatus());
 			String user = response.getFirstHeader("Remote-User");
@@ -209,23 +210,23 @@ public class Scim {
 		try {
 			switch (method) {
 			case "GET":
-				response = SimpleHttp.doGet(endpointurl, this.httpclient).asResponse();
+				response = SimpleHttp.doGet(endpointurl, session).asResponse();
 				break;
 			case "DELETE":
-				response = SimpleHttp.doDelete(endpointurl, this.httpclient)
+				response = SimpleHttp.doDelete(endpointurl, session)
 									 .header("X-CSRFToken", this.csrf_cookie.getValue())
 									 .header("referer", endpointurl)
 									 .asResponse();
 				break;
 			case "POST":
 				/* Header is needed for domains endpoint only, but use it here anyway */
-				response = SimpleHttp.doPost(endpointurl, this.httpclient)
+				response = SimpleHttp.doPost(endpointurl, session)
 									 .header("X-CSRFToken", this.csrf_cookie.getValue())
 									 .header("referer", endpointurl)
 									 .json(entity).asResponse();
 				break;
 			case "PUT":
-				response = SimpleHttp.doPut(endpointurl, this.httpclient)
+				response = SimpleHttp.doPut(endpointurl, session)
 									  .header("X-CSRFToken", this.csrf_cookie.getValue())
 									  .json(entity).asResponse();
 				break;
