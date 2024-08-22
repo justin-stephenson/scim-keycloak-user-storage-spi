@@ -99,6 +99,13 @@ ImportedUserValidation
 
 	@Override
 	public UserModel getUserByUsername(RealmModel realm, String username) {
+        /* Remove @realm, this is needed as GSSAPI auth users reach here
+         * as user@realm */
+        int idx = username.indexOf("@");
+        if (idx != -1) {
+            username = username.substring(0 , idx);
+        }
+
 		UserModel user = UserStoragePrivateUtil.userLocalStorage(session).getUserByUsername(realm,  username);
 		if (user != null) {
 			logger.info("User already exists in keycloak");
