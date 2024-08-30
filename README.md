@@ -143,3 +143,54 @@ $ curl -b cookies.txt -vvv -X DELETE http://127.0.0.1:8000/scim/v2/Users/$id
 * Check expected output with curl commands above, use `tcpdump` and compare with http filter.
 
 * Start keycloak with option `--log-level=INFO,org.apache.http.wire:debug` to enable http wire tracing
+
+#### Plugin communication
+
+This SCIM client plugin is designed to communicate with the [ipa-tuura](https://github.com/freeipa/ipa-tuura) bridge service, which provide endpoints for SCIMv2, Administrative, authentication, and credentials validation requests.
+
+The plugin enables use of the [Keycloak TrustStore](https://www.keycloak.org/server/keycloak-truststore) to act as a client trust store, acting as a client and establishing TLS connections with external services, This enables the
+plugin to communicate over HTTPS to the [ipa-tuura](https://github.com/freeipa/ipa-tuura) bridge.
+
+When a user lookup is performed in keycloak, Keycloak loads [user storage plugin interfaces](https://www.keycloak.org/docs/latest/server_development/#_provider_capability_interfaces) for any federated user storage plugins configured on the server.
+From this interface, the [getUserByUsername](https://www.keycloak.org/docs-api/25.0.0/javadocs/org/keycloak/storage/user/UserLookupProvider.html#getUserByUsername(org.keycloak.models.RealmModel,java.lang.String)) method is executed.
+This SCIM plugin initializes `Apache HTTP components` HTTPClient object to perform initial login authentication to the SCIM server URL provided in the user storage configuration.
+
+  1) HTTP GET request sent to the SCIM server `/admin/` page, retrieving the Location header which gives the URL login page to send the next request
+  2) HTTP GET request to the login page, retrieving the initial csrftoken cookie
+  3) HTTP POST to URL login page providing csrftoken in the 'X-CSRFToken' header, along with username + password data to authenticate this user
+  4) Store the updated csrf cookie into the `HTTPClient` cookie store, this is needed to send and receive authenticated state in subsequent calls to server endpoints
+
+Then once logged in, the plugin `HTTPClient` queries for SCIM resources to the scim server following [RFC7644](https://datatracker.ietf.org/doc/html/rfc7644#section-3.4.3). In the user lookup case, this is done by sending a HTTP POST request to the `scim/v2/Users/.search` endpoint  with the `application/scim+json` content type data `userName eq \"testuser\` as the filter string. If the user exists, the server responds with HTTP status code 200 and includes the result in the body of the response.
+
+For new user creations, the plugin sends HTTP POST to the create new resource SCIM endpoint with HTTP body, a JSON representation of the user.
+
+    POST /Users  HTTP/1.1
+    Host: example.com
+    Accept: application/scim+json
+    Content-Type: application/scim+json
+    Content-Length: ...
+
+    {
+    "schemas" : ["urn:ietf:params:scim:schemas:core:2.0:User"],
+    "userName" : "testuser"
+    "externalId" : "testuser",
+    "name" : {
+        "familyName" : "user",
+        "formatted" : "testuser",
+        "givenName" : "test"
+    },
+    "emails":[{
+        "primary" : true,
+        "type" : "work",
+        "value" : "testuser@ipa.test"
+    }],
+    }
+
+Password validation sends the HTTP POST request to ipa-tuura endpoint `/creds/simple_pwd` ipa-tuura endpoint, where actual validation is performed on the server side. The plugin retrieves a successful, or failure HTTP response code which is returned to the keycloak login operation.
+
+In Kerberos environments, GSSAPI authentication enables users with a valid kerberos ticket to login transparently through the keycloak client browser flow. The plugin implements the [CredentialAuthentication interface](
+https://www.keycloak.org/docs-api/25.0.1/javadocs/org/keycloak/credential/CredentialAuthentication.html#authenticate(org.keycloak.models.RealmModel,org.keycloak.credential.CredentialInput)) to support this.
+With proper web browser configuration, Keycloak retrieves the Kerberos token from the `Authorization: Negotiate` HTTP header, the plugin then sends the kerberos principal name and extracted token to the server `/bridge/login_kerberos/` endpoint.
+This endpoint validates the kerberos credentials server-side and if successful, sets the `REMOTE_USER` in the header response. This endpoint uses [cookie based sessions](https://github.com/gssapi/mod_auth_gssapi?tab=readme-ov-file#gssapiusesessions) to avoid re-authentication attempts for every request. 
+
+The plugin configuration shows optional [fields](https://github.com/justin-stephenson/scim-keycloak-user-storage-spi/blob/main/src/main/java/keycloak/scim_user_spi/SCIMUserStorageProviderFactory.java#L57) which can be provided for the `ipa-tuura` Administrative endpoint, This allows you to add and remove integration domains and perform client enrollment of the bridge service in the integration domain. It supports integration with FreeIPA, LDAP and Active Directory.
