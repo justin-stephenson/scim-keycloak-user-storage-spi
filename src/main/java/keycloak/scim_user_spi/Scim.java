@@ -413,7 +413,7 @@ public class Scim {
 			user.setEmails(emails);
 			break;
 		case "userName":
-			// FIXME: Support changing username?
+			/* Changing username not supported */
 			break;
 		default:
 			logger.info("Unknown user attribute to set: " + attr);
