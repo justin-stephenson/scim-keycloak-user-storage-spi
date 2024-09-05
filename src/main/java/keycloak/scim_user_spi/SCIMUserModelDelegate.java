@@ -27,8 +27,6 @@ public class SCIMUserModelDelegate extends UserModelDelegate {
 
 	@Override
 	public void setAttribute(String attr, List<String> values) {
-		HttpStatus httpStatus;
-
 		SimpleHttp.Response resp = this.scim.updateUser(scim, this.getUsername(), attr, values);
 		try {
 			if (resp.getStatus() != HttpStatus.SC_OK &&

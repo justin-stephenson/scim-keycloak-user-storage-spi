@@ -166,7 +166,6 @@ ImportedUserValidation
 	public boolean isValid(RealmModel realm, UserModel user, CredentialInput input) {
 		if (!supportsCredentialType(input.getType()) || !(input instanceof UserCredentialModel)) return false;
 
-		UserCredentialModel cred = (UserCredentialModel)input;
 		/* The password can either be validated locally in keycloak (tried first)
 		   or in the SCIM server */
 		if (((UserCredentialManager) user.credentialManager()).isConfiguredLocally(input.getType())) {
