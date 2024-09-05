@@ -170,7 +170,7 @@ ImportedUserValidation
 		   or in the SCIM server */
 		if (((UserCredentialManager) user.credentialManager()).isConfiguredLocally(input.getType())) {
 			logger.infov("Local password validation for {0}", user.getUsername());
-			// return false in order to fallback to the next validator
+			/* return false in order to fallback to the next validator */
 			return false;
 		} else {
 			logger.infov("Delegated password validation for {0}", user.getUsername());
@@ -244,16 +244,6 @@ ImportedUserValidation
 	}
 
 	// UserQueryProvider methods
-	//
-	// FIXME: Add support for substring filter "co" matches
-	// Only supports searching by exact/complete userName, not partial
-
-	// FIXME: Add support for email, fname, lastname searching
-	// Only supports searching by userName (not email, firstname, lastname)
-	// update: Partial support added in performSearch(), searchForUser map method needs to
-	// be updated, tested
-
-	// FIXME: handle firstResult, maxResults
 	private Stream<UserModel> performSearch(RealmModel realm, String search) {
 		List<UserModel> users = new LinkedList<>();
 		Scim scim = this.scim;
@@ -271,35 +261,9 @@ ImportedUserValidation
 			return users.stream();
 		}
 
-		//		results = scim.getUserByEmail(search);
-		//		if (results > 0) {
-		//			logger.info("User found by email!");
-		//	        UserModel user = getUserByUsername(scim.getUserName(), realm);
-		//	        users.add(user);
-		//	        return users;
-		//		}
-		//
-		//		results = scim.getUserByFirstName(search);
-		//		if (results > 0) {
-		//			logger.info("User found by first name!");
-		//	        UserModel user = getUserByUsername(scim.getUserName(), realm);
-		//	        users.add(user);
-		//	        return users;
-		//		}
-		//
-		//		results = scim.getUserByLastName(search);
-		//		if (results > 0) {
-		//			logger.info("User found by last name!");
-		//	        UserModel user = getUserByUsername(scim.getUserName(), realm);
-		//	        users.add(user);
-		//	        return users;
-		//		}
-
 		return users.stream();
 	}
 
-	// FIXME: Add support for managing federated users? Or mass import (see LDAP federation plugin)
-	// See https://www.keycloak.org/docs/latest/server_admin/#user-management
 	@Override
 	public Stream<UserModel> getGroupMembersStream(RealmModel arg0, GroupModel arg1, Integer arg2, Integer arg3) {
 		return Stream.empty();
