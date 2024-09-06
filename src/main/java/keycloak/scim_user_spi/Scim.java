@@ -53,21 +53,8 @@ public class Scim {
 		String username = model.getConfig().getFirst("loginusername");
 		String password = model.getConfig().getFirst("loginpassword");
 
-		/* Get Location redirect url */
-		url = String.format("https://%s%s", server, "/admin/");
-
-		try {
-			response = SimpleHttp.doGet(url, session).asResponse();
-
-			loginPage = response.getFirstHeader("Location");
-			response.close();
-		} catch (Exception e) {
-			logger.errorv("Error: {0}", e.getMessage());
-			throw new RuntimeException(e);
-		}
-
 		/* Execute GET to get initial csrftoken */
-		url = String.format("https://%s%s", server, loginPage);
+		url = String.format("https://%s%s", server, "/admin/");
 
 		try {
 			response = SimpleHttp.doGet(url, session).asResponse();
