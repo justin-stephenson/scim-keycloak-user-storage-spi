@@ -2,14 +2,11 @@ package keycloak.scim_user_spi;
 
 import org.jboss.logging.Logger;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
 
-import org.apache.http.client.CookieStore;
-import org.apache.http.cookie.Cookie;
-import org.apache.http.impl.client.CloseableHttpClient;
 import org.keycloak.component.ComponentModel;
 import org.keycloak.models.KeycloakSession;
 import org.keycloak.broker.provider.util.SimpleHttp;
@@ -26,18 +23,35 @@ public class Scim {
 	public static final String SCHEMA_CORE_USER = "urn:ietf:params:scim:schemas:core:2.0:User";
 	public static final String SCHEMA_API_MESSAGES_SEARCHREQUEST = "urn:ietf:params:scim:api:messages:2.0:SearchRequest";
 
-	Cookie csrf_cookie;
+	String sessionid_cookie;
+	String csrf_cookie;
+	String csrf_value;
 	Boolean logged_in = false;
 
-	private final CloseableHttpClient httpclient;
-	private final CookieStore cookieStore;
 	private final KeycloakSession session;
 
-	public Scim(KeycloakSession session, ComponentModel model, CloseableHttpClient httpclient, CookieStore cookieStore) {
+	public Scim(KeycloakSession session, ComponentModel model) {
 		this.model = model;
-		this.httpclient = httpclient;
-		this.cookieStore = cookieStore;
 		this.session = session;
+	}
+
+	private void parseSetCookie(SimpleHttp.Response response) throws IOException {
+		List<String> setCookieHeaders = response.getHeader("Set-Cookie");
+
+		for(String h: setCookieHeaders) {
+			String[] kv = h.split("\\;");
+			for(String s: kv) {
+				if (s.contains("csrftoken")) {
+					/* key=value */
+					csrf_cookie = s;
+					csrf_value = s.substring(s.lastIndexOf("=") + 1);
+				} else if (s.contains("sessionid")) {
+					/* key=value */
+					sessionid_cookie = s;
+					csrf_cookie += String.format("; %s", sessionid_cookie);
+				}
+			}
+		}
 	}
 
 	public Integer csrfAuthLogin() {
@@ -45,52 +59,41 @@ public class Scim {
 		String loginPage = "";
 		SimpleHttp.Response response = null;
 
-		/* Clear existing cookies */
-		cookieStore.clear();
-
 		/* Get inputs */
 		String server = model.getConfig().getFirst("scimurl");
 		String username = model.getConfig().getFirst("loginusername");
 		String password = model.getConfig().getFirst("loginpassword");
 
 		/* Execute GET to get initial csrftoken */
-		url = String.format("https://%s%s", server, "/admin/");
+		url = String.format("https://%s%s", server, "/admin/login/");
 
 		try {
 			response = SimpleHttp.doGet(url, session).asResponse();
+
+			parseSetCookie(response);
+
 			response.close();
 		} catch (Exception e) {
 			logger.errorv("Error: {0}", e.getMessage());
 			throw new RuntimeException(e);
 		}
 
-
-		/* Store the Response csrftoken cookie */
-		for (Cookie co: cookieStore.getCookies()) {
-			if (co.getName().contains("csrftoken")) {
-				csrf_cookie = co;
-			}
-		}
-
 		/* Perform login POST */
-		HashMap<String, String> headers = new HashMap<String, String>();
-
-		headers.put("X-CSRFToken", this.csrf_cookie.getValue());
-
 		try {
 			/* Here we retrieve the Response sessionid and csrftoken cookie */
 			response = SimpleHttp.doPost(url, session)
-								 .header("X-CSRFToken", this.csrf_cookie.getValue())
-								 .header("referer", url)
-								 .param("username",  username).param("password",  password).asResponse();
+					.header("X-CSRFToken", csrf_value)
+					.header("Cookie",  csrf_cookie)
+					.header("referer", url)
+					.param("username",  username).param("password",  password).asResponse();
+
+			parseSetCookie(response);
 			response.close();
 		} catch (Exception e) {
 			logger.error("Error: " + e.getMessage());
 			throw new RuntimeException(e);
 		}
 
-		/* Add the original CSRF cookie */
-		cookieStore.addCookie(this.csrf_cookie);
 		this.logged_in = true;
 		return 0;
 
@@ -110,7 +113,12 @@ public class Scim {
 
 		logger.infov("Sending POST request to {0}", endpointurl);
 		try {
-			response = SimpleHttp.doPost(endpointurl, session).header("X-CSRFToken", this.csrf_cookie.getValue()).header("referer", endpointurl).param("username",  username).param("password",  password).asResponse();
+			response = SimpleHttp.doPost(endpointurl, session).header("X-CSRFToken", this.csrf_value)
+					.header("Cookie",  this.csrf_cookie)
+					.header("SessionId", sessionid_cookie)
+					.header("referer", endpointurl)
+					.param("username",  username)
+					.param("password",  password).asResponse();
 			result = response.asJson();
 			return (result.get("result").get("validated").asBoolean());
 		} catch (Exception e) {
@@ -129,7 +137,8 @@ public class Scim {
 
 		logger.infov("Sending POST request to {0}", endpointurl);
 		try {
-			response = SimpleHttp.doPost(endpointurl, session).header("Authorization", "Negotiate " + spnegoToken).param("username", "").asResponse();
+			response = SimpleHttp.doPost(endpointurl, session).header("Authorization", "Negotiate " + spnegoToken)
+					.param("username", "").asResponse();
 			result = response.asJson();
 			logger.infov("Response status is {0}", response.getStatus());
 			String user = response.getFirstHeader("Remote-User");
@@ -197,25 +206,35 @@ public class Scim {
 		try {
 			switch (method) {
 			case "GET":
-				response = SimpleHttp.doGet(endpointurl, session).asResponse();
+				response = SimpleHttp.doGet(endpointurl, session)
+				.header("X-CSRFToken", csrf_value)
+				.header("Cookie",  csrf_cookie)
+				.header("SessionId", sessionid_cookie)
+				.asResponse();
 				break;
 			case "DELETE":
 				response = SimpleHttp.doDelete(endpointurl, session)
-									 .header("X-CSRFToken", this.csrf_cookie.getValue())
-									 .header("referer", endpointurl)
-									 .asResponse();
+				.header("X-CSRFToken", csrf_value)
+				.header("Cookie",  csrf_cookie)
+				.header("SessionId", sessionid_cookie)
+				.header("referer", endpointurl)
+				.asResponse();
 				break;
 			case "POST":
 				/* Header is needed for domains endpoint only, but use it here anyway */
 				response = SimpleHttp.doPost(endpointurl, session)
-									 .header("X-CSRFToken", this.csrf_cookie.getValue())
-									 .header("referer", endpointurl)
-									 .json(entity).asResponse();
+				.header("X-CSRFToken", this.csrf_value)
+				.header("Cookie",  this.csrf_cookie)
+				.header("SessionId", sessionid_cookie)
+				.header("referer", endpointurl)
+				.json(entity).asResponse();
 				break;
 			case "PUT":
 				response = SimpleHttp.doPut(endpointurl, session)
-									  .header("X-CSRFToken", this.csrf_cookie.getValue())
-									  .json(entity).asResponse();
+				.header("X-CSRFToken", this.csrf_value)
+				.header("SessionId", sessionid_cookie)
+				.header("Cookie",  this.csrf_cookie)
+				.json(entity).asResponse();
 				break;
 			default:
 				logger.warn("Unknown HTTP method, skipping");
