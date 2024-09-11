@@ -99,12 +99,12 @@ ImportedUserValidation
 
 	@Override
 	public UserModel getUserByUsername(RealmModel realm, String username) {
-        /* Remove @realm, this is needed as GSSAPI auth users reach here
-         * as user@realm */
-        int idx = username.indexOf("@");
-        if (idx != -1) {
-            username = username.substring(0 , idx);
-        }
+		/* Remove @realm, this is needed as GSSAPI auth users reach here
+		 * as user@realm */
+		int idx = username.indexOf("@");
+		if (idx != -1) {
+			username = username.substring(0 , idx);
+		}
 
 		UserModel user = UserStoragePrivateUtil.userLocalStorage(session).getUserByUsername(realm,  username);
 		if (user != null) {
@@ -329,7 +329,7 @@ ImportedUserValidation
 			logger.info("GSSAPI authenticating with user " + username);
 		}
 
-        UserModel user = getUserByUsername(realm, username);
+		UserModel user = getUserByUsername(realm, username);
 		if (user == null) {
 			logger.info("CredentialValidationOutput failed");
 			return CredentialValidationOutput.failed();
