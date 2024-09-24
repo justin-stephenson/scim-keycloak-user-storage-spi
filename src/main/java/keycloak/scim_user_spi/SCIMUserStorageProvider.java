@@ -293,17 +293,12 @@ ImportedUserValidation
 	}
 
 	@Override
-	public Stream<UserModel> searchForUserStream(RealmModel realm, String search, Integer firstResult, Integer maxResults) {
-		return performSearch(realm, search);
-	}
-
-	@Override
 	public Stream<UserModel> searchForUserStream(RealmModel realm, Map<String, String> params, Integer firstResult,
 			Integer maxResults) {
+		String search = params.get(UserModel.SEARCH);
 		/* only supports searching by username */
-		String usernameSearchString = params.get("username");
-		if (usernameSearchString == null) return Stream.empty();
-		return searchForUserStream(realm, usernameSearchString, firstResult, maxResults);
+		if (search == null) return Stream.empty();
+		return performSearch(realm, search);
 	}
 
 	@Override
