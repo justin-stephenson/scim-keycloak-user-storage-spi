@@ -26,10 +26,12 @@ import org.keycloak.component.ComponentValidationException;
 import org.keycloak.storage.UserStorageProviderFactory;
 import org.keycloak.provider.ProviderConfigProperty;
 import org.keycloak.provider.ProviderConfigurationBuilder;
+import org.keycloak.storage.UserStorageProviderModel;
 import keycloak.scim_user_spi.authenticator.SCIMAuthenticator;
 
 import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 
 /**
@@ -40,6 +42,7 @@ public class SCIMUserStorageProviderFactory implements UserStorageProviderFactor
 
 	private static final Logger logger = Logger.getLogger(SCIMUserStorageProviderFactory.class);
 	public static final String PROVIDER_NAME = "scim";
+	protected Scim scim;
 	protected static final List<String> PROVIDERS = new LinkedList<>();
 	protected static final List<ProviderConfigProperty> configMetadata;
 
@@ -144,10 +147,19 @@ public class SCIMUserStorageProviderFactory implements UserStorageProviderFactor
 		return configMetadata;
 	}
 
+	private Boolean domainsRequest() {
+	    // FIXME: try catch
+	    logger.info("domainsRequest");
+	    Boolean result = scim.domainsRequest();
+	    logger.info("domainsRequest: return result");
+	    return result;
+	}
+
 	@Override
 	public void validateConfiguration(KeycloakSession session, RealmModel realm, ComponentModel config)
 			throws ComponentValidationException {
 		Scim scim = new Scim(session, config);
+		this.scim = scim;
 
 		SimpleHttp.Response response;
 
@@ -161,9 +173,24 @@ public class SCIMUserStorageProviderFactory implements UserStorageProviderFactor
 
 		Boolean add_set = Boolean.valueOf(config.getConfig().getFirst("addintgdomain"));
 
+		//config.put(UserStorageProviderModel.ENABLED, false);
+		/* Check enabled */
+		//logger.infov("validate enabled1: {0}", config.get(UserStorageProviderModel.ENABLED));
+		//logger.infov("validate enabled2: {0}", config.getConfig().getFirst("enabled"));
+
 		if (add_set) {
-			Boolean result = scim.domainsRequest();
-			logger.infov("Add intgDomains Result is {0}", result);
+		    /* Initially set to disabled, enable component when result is received */
+		    //config.put(UserStorageProviderModel.ENABLED, false);
+		    logger.info("addSet");
+		    CompletableFuture<Void> future = CompletableFuture.supplyAsync(this::domainsRequest)
+		            .thenAccept(s -> logger.infov("Add intgDomains Result is {0}", s));;
+//		            .thenAccept(s -> {
+//		                logger.infov("Add intgDomains Result is {0}", s);
+//		                /* FIXME: Check for HTTP status code 201 Created */
+//		                config.put(UserStorageProviderModel.ENABLED, false);
+//		                logger.infov("thenAccept enabled1: {0}", config.get(UserStorageProviderModel.ENABLED));
+//		                logger.infov("thenAccept enabled2: {0}", config.getConfig().getFirst("enabled"));
+//		            });
 		}
 	}
 
