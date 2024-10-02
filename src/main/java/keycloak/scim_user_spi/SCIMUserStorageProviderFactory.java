@@ -18,6 +18,8 @@
 package keycloak.scim_user_spi;
 
 import org.jboss.logging.Logger;
+import java.util.Timer;
+import java.util.TimerTask;
 import org.keycloak.broker.provider.util.SimpleHttp;
 import org.keycloak.component.ComponentModel;
 import org.keycloak.models.KeycloakSession;
@@ -162,8 +164,22 @@ public class SCIMUserStorageProviderFactory implements UserStorageProviderFactor
 		Boolean add_set = Boolean.valueOf(config.getConfig().getFirst("addintgdomain"));
 
 		if (add_set) {
+            /* FIXME Should return HTTP 202 Accepted */
 			Boolean result = scim.domainsRequest();
 			logger.infov("Add intgDomains Result is {0}", result);
+
+        /* Add 30 second timer to check if domain was created */
+        new Timer().schedule( 
+                new TimerTask() {
+                    @Override
+                    public void run() {
+			            Boolean result = scim.domainsCreated();
+			            logger.infov("Intgdomain check result is {0}", result);
+                    }
+                }, 
+                30000 
+        );
+
 		}
 	}
 
