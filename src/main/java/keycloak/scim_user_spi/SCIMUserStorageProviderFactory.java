@@ -26,6 +26,7 @@ import org.keycloak.component.ComponentValidationException;
 import org.keycloak.storage.UserStorageProviderFactory;
 import org.keycloak.provider.ProviderConfigProperty;
 import org.keycloak.provider.ProviderConfigurationBuilder;
+import org.keycloak.timer.TimerProvider;
 import keycloak.scim_user_spi.authenticator.SCIMAuthenticator;
 
 import java.util.LinkedList;
@@ -147,24 +148,35 @@ public class SCIMUserStorageProviderFactory implements UserStorageProviderFactor
 	@Override
 	public void validateConfiguration(KeycloakSession session, RealmModel realm, ComponentModel config)
 			throws ComponentValidationException {
-		Scim scim = new Scim(session, config);
+	Scim scim = new Scim(session, config);
 
-		SimpleHttp.Response response;
+	SimpleHttp.Response response;
 
-		try {
-			response = scim.clientRequest("", "GET", null);
-			response.close();
-		} catch (Exception e) {
-			logger.info(e);
-			throw new ComponentValidationException("Cannot connect to provided URL!");
-		}
+	try {
+		response = scim.clientRequest("", "GET", null);
+		response.close();
+	} catch (Exception e) {
+		logger.info(e);
+		throw new ComponentValidationException("Cannot connect to provided URL!");
+	}
 
-		Boolean add_set = Boolean.valueOf(config.getConfig().getFirst("addintgdomain"));
+	Boolean add_set = Boolean.valueOf(config.getConfig().getFirst("addintgdomain"));
 
-		if (add_set) {
-			Boolean result = scim.domainsRequest();
-			logger.infov("Add intgDomains Result is {0}", result);
-		}
+        if (add_set) {
+            String enabled = null;
+            logger.infov("Setting enabled to false");
+
+            config.getConfig().putSingle("enabled", Boolean.toString(false));
+            enabled = config.getConfig().getFirst("enabled");
+
+            logger.infov("Enabled value is now {0}", enabled);
+
+            Boolean result = scim.domainsRequest();
+            logger.infov("Add intgDomains Result is {0}", result);
+
+            /* Verify the domain was created after 30 seconds */
+            session.getProvider(TimerProvider.class).scheduleTask(new checkDomainCreated(scim, config, realm), 30000);
+        }
 	}
 
 	@Override
@@ -180,6 +192,11 @@ public class SCIMUserStorageProviderFactory implements UserStorageProviderFactor
 		Boolean result = scim.domainsRemove();
 		logger.infov("Delete intgDomains Result is {0}", result);
 	}
+
+    @Override
+    public void onUpdate(KeycloakSession session, RealmModel realm, ComponentModel oldModel, ComponentModel newModel) {
+		logger.infov("onUpdate");
+    }
 
 	@Override
 	public SCIMUserStorageProvider create(KeycloakSession session, ComponentModel model) {

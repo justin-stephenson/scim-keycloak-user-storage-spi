@@ -167,6 +167,23 @@ public class Scim {
 		}
 	}
 
+	public boolean domainsCreated() {
+		SimpleHttp.Response response = null;
+		com.fasterxml.jackson.databind.JsonNode result;
+
+		/* Currently only a single domain is supported */
+		String domainurl = "domain/1";
+
+		try {
+			response = clientRequest(domainurl, "GET", null);
+			logger.infov("Response status is {0}", response.getStatus());
+			return true;
+		} catch (Exception e) {
+			logger.errorv("Failed to check if integration domain exists: {0}", e.getMessage());
+			throw new RuntimeException(e);
+		}
+	}
+
 	public boolean domainsRemove() {
 		SimpleHttp.Response response = null;
 		com.fasterxml.jackson.databind.JsonNode result;
