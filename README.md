@@ -1,6 +1,6 @@
 #### IMPORTANT
 
-This plugin is moving to the [keycloak](https://github.com/keycloak/keycloak/tree/main/federation/ipatuura), it is now built as part of keycloak
+This plugin is moving to the [keycloak](https://github.com/keycloak/keycloak/tree/main/federation/ipatuura) project, it is now built as part of keycloak
 as an experimental feature. Please file issues and PRs against the keycloak repo, this repo will no longer be kept up to date.
 
 Testing done with django-scim2 server
